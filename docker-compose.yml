@@ -1,0 +1,38 @@
+services:
+  trustcore_db:
+    image: postgres:15 
+    container_name: trustcore_db
+    restart: always
+    environment:
+      POSTGRES_USER: trustcore
+      POSTGRES_PASSWORD: kwn09j2pkmwffd
+      POSTGRES_DB: trustcore
+    ports:
+      - "5435:5432"
+    volumes:
+      - trustcore_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustcore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - ca_data:/app/ca_data
+    ports:
+      - "8000:8000"
+    depends_on:
+      trustcore_db:
+        condition: service_healthy
+
+
+volumes:
+  trustcore_data:
+  ca_data:

@@ -1,0 +1,20 @@
+services:
+  trustcore_db:
+    image: postgres:15 
+    container_name: trustcore_db
+    restart: always
+    environment:
+      POSTGRES_USER: trustcore
+      POSTGRES_PASSWORD: kwn09j2pkmwffd
+      POSTGRES_DB: trustcore
+    ports:
+      - "5435:5432"
+    volumes:
+      - trustcore_data:/var/lib/postgresql/data
+    networks:
+      - trustcore_network
+
+volumes:
+  trustcore_data:
+networks:
+  trustcore_network:

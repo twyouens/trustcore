@@ -1,0 +1,32 @@
+# FastAPI and ASGI server
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Database
+sqlalchemy
+alembic
+psycopg2-binary
+
+# Authentication & Security
+python-jose[cryptography]
+PyJWT
+passlib[bcrypt]
+python-dotenv
+
+# Cryptography for CA operations
+cryptography
+
+# Validation
+pydantic
+pydantic-settings
+email-validator
+
+# HTTP client for OIDC
+requests
+
+# Redis for state storage (optional)
+redis
+
+# Utilities
+python-dateutil
