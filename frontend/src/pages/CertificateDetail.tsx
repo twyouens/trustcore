@@ -228,6 +228,13 @@ export const CertificateDetail = () => {
                 </Descriptions.Item>
               </>
             )}
+            {certificate.status === 'rejected' && (
+              <>
+                <Descriptions.Item label="Rejection Reason" span={2}>
+                  {certificate.revocation_reason || 'N/A'}
+                </Descriptions.Item>
+              </>
+            )}
           </Descriptions>
         </Card>
 
