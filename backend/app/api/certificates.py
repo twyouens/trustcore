@@ -244,10 +244,11 @@ async def get_certificate(
     db: Session = Depends(get_db),
 ):
     """Get certificate details"""
-    certificate = db.query(
-        certificate_service.Certificate
-    ).filter_by(id=certificate_id).first()
-    
+    certificate = certificate_service.get_certificate(
+        db=db,
+        certificate_id=certificate_id
+    )
+
     if not certificate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
