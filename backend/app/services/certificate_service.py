@@ -383,5 +383,10 @@ class CertificateService:
         
         return certificates, total
 
+    @staticmethod
+    def get_certificate(db: Session, certificate_id: int) -> Optional[Certificate]:
+        """Get a single certificate by ID"""
+        return db.query(Certificate).filter(Certificate.id == certificate_id).first()
+
 
 certificate_service = CertificateService()
