@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_serializer
 from typing import Optional, List
 from datetime import datetime
 from app.models.certificate import CertificateType, CertificateStatus
+from app.schemas.user import UserSnippet
 from enum import Enum
 import re
+import json
 
 
 class CertificateFormat(str, Enum):
@@ -82,6 +84,23 @@ class CertificateResponse(BaseModel):
     approved_by_id: Optional[int] = None
     revoked_by_id: Optional[int] = None
     auto_approved: bool
+    
+    # User snippets
+    requested_by: Optional[UserSnippet] = None
+    approved_by: Optional[UserSnippet] = None
+    revoked_by: Optional[UserSnippet] = None
+    
+    @field_serializer('subject_alternative_names')
+    def serialize_sans(self, sans: Optional[List[str]], _info) -> Optional[List[str]]:
+        """Handle SANs whether they come as string or list"""
+        if sans is None:
+            return None
+        if isinstance(sans, str):
+            try:
+                return json.loads(sans)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return sans
     
     class Config:
         from_attributes = True
