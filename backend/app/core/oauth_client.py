@@ -10,22 +10,24 @@ from typing import Optional, Dict, Any, Tuple
 from jwt import PyJWKClient
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
+import logging
 
-# Assuming you have these imports from your application
-# Adjust these imports based on your actual FastAPI app structure
+logger = logging.getLogger(__name__)
+
+# Try to import redis_client if available
 try:
-    from app import logger
     from app.core.redis_client import redis_client
 except ImportError:
-    # Fallback for development/testing
-    import logging
-    logger = logging.getLogger(__name__)
     redis_client = None
+    logger.warning("Redis client not available - using in-memory state storage (not production safe!)")
 
 
 HEADERS = {"User-Agent": "OIDC-Client/1.0"}
 STATE_TTL = 300  # 5 minutes
 NONCE_TTL = 600  # 10 minutes
+
+# In-memory fallback for state/nonce storage (NOT PRODUCTION SAFE - use Redis in production)
+_state_storage: Dict[str, Tuple[str, datetime]] = {}
 
 
 class OAuthClient:
@@ -73,7 +75,7 @@ class OAuthClient:
         Returns:
             Discovery document dict or None if fetch fails
         """
-        now = datetime.now()
+        now = datetime.utcnow()
         
         # Return cached version if valid
         if (not force_refresh and 
@@ -111,7 +113,7 @@ class OAuthClient:
         state = secrets.token_urlsafe(32)
         nonce = secrets.token_urlsafe(32)
         
-        # Store state and nonce in Redis with TTL
+        # Store state and nonce with TTL
         if redis_client:
             state_key = self._get_state_key(state)
             try:
@@ -121,7 +123,9 @@ class OAuthClient:
                 logger.error(f"Failed to store state in Redis: {e}")
                 return None
         else:
-            logger.warning("Redis client not available, state validation will fail")
+            # Fallback to in-memory storage (NOT production safe)
+            _state_storage[state] = (nonce, datetime.utcnow() + timedelta(seconds=STATE_TTL))
+            logger.warning("Using in-memory state storage - not safe for production!")
 
         # Build authorization URL
         params = {
@@ -278,7 +282,8 @@ class OAuthClient:
             "picture": claims.get("picture"),
             "locale": claims.get("locale"),
             "updated_at": claims.get("updated_at"),
-            "groups": claims.get("groups", [])
+            "groups": claims.get("groups", []),
+            "preferred_username": claims.get("preferred_username"),
         }
         
         # Remove None values
@@ -378,29 +383,47 @@ class OAuthClient:
         Returns:
             Nonce string or None if validation fails
         """
-        if not redis_client:
-            logger.error("Redis client not available")
-            return None
-
-        state_key = self._get_state_key(state)
-        
-        try:
-            nonce = redis_client.get(state_key)
-            if nonce:
-                # Decode if bytes
-                if isinstance(nonce, bytes):
-                    nonce = nonce.decode('utf-8')
+        if redis_client:
+            state_key = self._get_state_key(state)
+            
+            try:
+                nonce = redis_client.get(state_key)
+                if nonce:
+                    # Decode if bytes
+                    if isinstance(nonce, bytes):
+                        nonce = nonce.decode('utf-8')
+                        
+                    # Delete state after use (one-time use)
+                    redis_client.delete(state_key)
+                    return nonce
+                else:
+                    logger.warning(f"State not found or expired: {state_key}")
+                    return None
                     
-                # Delete state after use (one-time use)
-                redis_client.delete(state_key)
+            except Exception as e:
+                logger.error(f"Error validating state: {e}")
+                return None
+        else:
+            # Fallback to in-memory storage
+            if state in _state_storage:
+                nonce, expiry = _state_storage[state]
+                
+                # Check if expired
+                if datetime.utcnow() > expiry:
+                    del _state_storage[state]
+                    logger.warning(f"State expired: {state}")
+                    return None
+                
+                # Delete after use (one-time use)
+                del _state_storage[state]
+                
+                # Clean up expired entries
+                _cleanup_expired_states()
+                
                 return nonce
             else:
-                logger.warning(f"State not found or expired: {state_key}")
+                logger.warning(f"State not found: {state}")
                 return None
-                
-        except Exception as e:
-            logger.error(f"Error validating state: {e}")
-            return None
 
 
 # Utility functions
@@ -427,6 +450,14 @@ def _discover(openid_config_url: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Unexpected error during OIDC discovery: {e}")
         return {}
+
+
+def _cleanup_expired_states():
+    """Clean up expired states from in-memory storage"""
+    now = datetime.now()
+    expired_keys = [k for k, (_, expiry) in _state_storage.items() if now > expiry]
+    for k in expired_keys:
+        del _state_storage[k]
 
 
 def check_provider_support(provider_config: Dict[str, Any]) -> bool:
