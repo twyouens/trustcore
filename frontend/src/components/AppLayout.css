@@ -13,14 +13,14 @@
 
 .logo-icon {
   font-size: 32px;
-  color: #1890ff;
+  color: #51e43d;
 }
 
 .logo-text {
   margin: 0 !important;
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
-  background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #55a24b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -77,10 +77,9 @@
   font-size: 14px;
 }
 
-.user-role {
+.user-username {
   font-size: 12px;
   color: #8c8c8c;
-  text-transform: capitalize;
 }
 
 .app-content {
