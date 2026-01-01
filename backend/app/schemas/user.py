@@ -9,6 +9,16 @@ class UserBase(BaseModel):
     username: str
     full_name: Optional[str] = None
 
+class UserSnippet(BaseModel):
+    """Minimal user details for nested responses"""
+    id: int
+    username: str
+    email: EmailStr
+    full_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
 
 class UserCreate(UserBase):
     role: UserRole = UserRole.USER
