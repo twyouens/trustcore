@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { certificateService } from '@/services/certificate.service';
 import { formatMacAddress, validateMacAddress } from '@/utils/helpers';
-import { DownloadCertificateModal } from '@/components/DownloadCertificateModal';
+import { MandatoryDownloadModal } from '@/components/MandatoryDownloadModal';
 
 const { Title, Text } = Typography;
 
@@ -187,27 +187,6 @@ export const GenerateMachineCert = () => {
 
           <Divider />
 
-          <Alert
-            message="Installation Tips"
-            description={
-              <div>
-                <p><strong>Windows:</strong></p>
-                <ul>
-                  <li>Double-click the .p12 file and follow the Certificate Import Wizard</li>
-                  <li>Install to "Local Machine" store</li>
-                </ul>
-                <p><strong>Linux (wpa_supplicant):</strong></p>
-                <ul>
-                  <li>Use PEM format and specify cert/key files separately</li>
-                  <li>Or use PKCS12 format with pkcs12 parameter</li>
-                </ul>
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 24 }}
-          />
-
           <Form.Item>
             <Space>
               <Button
@@ -228,13 +207,13 @@ export const GenerateMachineCert = () => {
       </Card>
 
       {generatedCert && (
-        <DownloadCertificateModal
+        <MandatoryDownloadModal
           visible={showDownloadModal}
-          onCancel={handleDownloadComplete}
-          certificateId={generatedCert.id}
-          commonName={generatedCert.common_name}
+          certificateData={generatedCert.certificate}
           certificateType={generatedCert.certificate_type}
-          defaultPassword={generatedCert.common_name}
+          commonName={generatedCert.common_name}
+          outputFormat={form.getFieldValue('output_format')}
+          onDownloadComplete={handleDownloadComplete}
         />
       )}
     </div>

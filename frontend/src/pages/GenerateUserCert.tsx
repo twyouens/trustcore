@@ -4,7 +4,7 @@ import { TeamOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { certificateService } from '@/services/certificate.service';
-import { DownloadCertificateModal } from '@/components/DownloadCertificateModal';
+import { MandatoryDownloadModal } from '@/components/MandatoryDownloadModal';
 import { useAuthStore } from '@/store/authStore';
 
 const { Title, Text } = Typography;
@@ -167,38 +167,6 @@ export const GenerateUserCert = () => {
 
           <Divider />
 
-          <Alert
-            message="Installation Tips"
-            description={
-              <div>
-                <p><strong>Windows:</strong></p>
-                <ul>
-                  <li>Double-click the .p12 file and follow the Certificate Import Wizard</li>
-                  <li>Install to "Current User" store</li>
-                  <li>Windows will automatically use it for WiFi authentication</li>
-                </ul>
-                <p><strong>macOS:</strong></p>
-                <ul>
-                  <li>Double-click the .p12 file to add to Keychain</li>
-                  <li>Configure WiFi to use "TLS" or "EAP-TLS" authentication</li>
-                </ul>
-                <p><strong>iOS/Android:</strong></p>
-                <ul>
-                  <li>Email the .p12 file or use a profile management system</li>
-                  <li>Install via Settings → WiFi → Select Network → Certificate</li>
-                </ul>
-                <p><strong>Linux:</strong></p>
-                <ul>
-                  <li>Use NetworkManager or wpa_supplicant configuration</li>
-                  <li>Specify PKCS12 file path and password</li>
-                </ul>
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 24 }}
-          />
-
           <Form.Item>
             <Space>
               <Button
@@ -219,13 +187,13 @@ export const GenerateUserCert = () => {
       </Card>
 
       {generatedCert && (
-        <DownloadCertificateModal
+        <MandatoryDownloadModal
           visible={showDownloadModal}
-          onCancel={handleDownloadComplete}
-          certificateId={generatedCert.id}
-          commonName={generatedCert.common_name}
+          certificateData={generatedCert.certificate}
           certificateType={generatedCert.certificate_type}
-          defaultPassword={generatedCert.common_name}
+          commonName={generatedCert.common_name}
+          outputFormat={form.getFieldValue('output_format')}
+          onDownloadComplete={handleDownloadComplete}
         />
       )}
     </div>
