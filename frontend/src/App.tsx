@@ -6,16 +6,15 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { AuthCallback } from './pages/AuthCallback';
 import { Dashboard } from './pages/Dashboard';
-// Import other pages (will be created)
-// import { CertificateList } from './pages/CertificateList';
-// import { CertificateDetail } from './pages/CertificateDetail';
-// import { RequestServerCert } from './pages/RequestServerCert';
-// import { GenerateMachineCert } from './pages/GenerateMachineCert';
-// import { GenerateUserCert } from './pages/GenerateUserCert';
-// import { PendingApprovals } from './pages/PendingApprovals';
-// import { AuditLogs } from './pages/AuditLogs';
-// import { CAInformation } from './pages/CAInformation';
-// import { UserProfile } from './pages/UserProfile';
+import { CertificateList } from './pages/CertificateList';
+import { CertificateDetail } from './pages/CertificateDetail';
+import { RequestServerCert } from './pages/RequestServerCert';
+import { GenerateMachineCert } from './pages/GenerateMachineCert';
+import { GenerateUserCert } from './pages/GenerateUserCert';
+import { PendingApprovals } from './pages/PendingApprovals';
+import { AuditLogs } from './pages/AuditLogs';
+import { CAInformation } from './pages/CAInformation';
+import { UserProfile } from './pages/UserProfile';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -48,20 +47,20 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/certificates" element={<div>Certificate List (Coming Soon)</div>} />
-                <Route path="/certificates/:id" element={<div>Certificate Detail (Coming Soon)</div>} />
-                <Route path="/certificates/request-server" element={<div>Request Server Cert (Coming Soon)</div>} />
-                <Route path="/ca-info" element={<div>CA Information (Coming Soon)</div>} />
-                <Route path="/profile" element={<div>Profile (Coming Soon)</div>} />
+                <Route path="/certificates" element={<CertificateList />} />
+                <Route path="/certificates/:id" element={<CertificateDetail />} />
+                <Route path="/certificates/request-server" element={<RequestServerCert />} />
+                <Route path="/ca-info" element={<CAInformation />} />
+                <Route path="/profile" element={<UserProfile />} />
               </Route>
             </Route>
 
             <Route element={<ProtectedRoute requireAdmin />}>
               <Route element={<AppLayout />}>
-                <Route path="/certificates/generate-machine" element={<div>Generate Machine Cert (Coming Soon)</div>} />
-                <Route path="/certificates/generate-user" element={<div>Generate User Cert (Coming Soon)</div>} />
-                <Route path="/approvals" element={<div>Pending Approvals (Coming Soon)</div>} />
-                <Route path="/audit" element={<div>Audit Logs (Coming Soon)</div>} />
+                <Route path="/certificates/generate-machine" element={<GenerateMachineCert />} />
+                <Route path="/certificates/generate-user" element={<GenerateUserCert />} />
+                <Route path="/approvals" element={<PendingApprovals />} />
+                <Route path="/audit" element={<AuditLogs />} />
               </Route>
             </Route>
 
