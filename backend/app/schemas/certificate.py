@@ -2,12 +2,21 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models.certificate import CertificateType, CertificateStatus
+from enum import Enum
 import re
+
+
+class CertificateFormat(str, Enum):
+    PEM = "pem"
+    PKCS12 = "pkcs12"
+    DER = "der"
 
 
 class CertificateRequestBase(BaseModel):
     certificate_type: CertificateType
     validity_days: int = Field(default=365, ge=1, le=3650)
+    output_format: CertificateFormat = Field(default=CertificateFormat.PEM)
+    pkcs12_password: Optional[str] = Field(default=None, description="Password for PKCS12 format. If not provided, defaults to username.")
 
 
 class MachineCertificateRequest(CertificateRequestBase):
@@ -39,6 +48,11 @@ class ServerCertificateRequest(CertificateRequestBase):
         if not v.startswith('-----BEGIN CERTIFICATE REQUEST-----'):
             raise ValueError('CSR must be in PEM format')
         return v
+
+
+class CertificateDownloadRequest(BaseModel):
+    output_format: CertificateFormat = Field(default=CertificateFormat.PEM)
+    pkcs12_password: Optional[str] = Field(default=None, description="Password for PKCS12 format. If not provided, defaults to username.")
 
 
 class CertificateApproval(BaseModel):
