@@ -60,6 +60,7 @@ class AuditService:
         admin: User,
         approved: bool,
         ip_address: Optional[str] = None,
+        comment: Optional[str] = None
     ):
         """Log certificate approval/rejection"""
         action = "certificate_approved" if approved else "certificate_rejected"
@@ -70,6 +71,7 @@ class AuditService:
             resource_id=certificate_id,
             user=admin,
             ip_address=ip_address,
+            details={"comment": comment} if comment else None,
         )
     
     @staticmethod
