@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import './Login.css';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 export const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -52,11 +52,8 @@ export const Login = () => {
           
           <div>
             <Title level={4} style={{ marginBottom: 8 }}>
-              Certificate Authority Management
+              Certificate Management
             </Title>
-            <Text type="secondary">
-              Secure certificate management for your organization
-            </Text>
           </div>
 
           <Button
