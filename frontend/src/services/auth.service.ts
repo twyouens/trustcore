@@ -7,7 +7,6 @@ export const authService = {
    */
   getAuthorizationUrl: async (): Promise<string> => {
     const response = await api.get<AuthUrlResponse>('/auth/login');
-    console.log(response.data);
     return response.data.redirect_uri;
   },
 
