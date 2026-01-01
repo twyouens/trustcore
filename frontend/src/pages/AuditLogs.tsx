@@ -6,6 +6,7 @@ import { auditService } from '@/services/audit.service';
 import { formatDate } from '@/utils/helpers';
 import { AuditLog } from '@/types';
 import type { ColumnsType } from 'antd/es/table';
+import { UserBadge } from '@/components/UserBadge';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -73,15 +74,8 @@ export const AuditLogs = () => {
       title: 'User',
       dataIndex: 'user_id',
       key: 'user',
-      width: 100,
-      render: (id) => id ? `User ${id}` : 'System',
-    },
-    {
-      title: 'IP Address',
-      dataIndex: 'ip_address',
-      key: 'ip',
-      width: 140,
-      render: (ip) => <Text code>{ip || 'N/A'}</Text>,
+      width: 150,
+      render: (id, user) => id && user.user ? <UserBadge name={user.user.full_name ?? 'N/A'} username={user.user.username ?? 'N/A'} /> : 'System',
     },
     {
       title: 'Details',
@@ -106,13 +100,14 @@ export const AuditLogs = () => {
   const exportToCsv = () => {
     if (!data?.items) return;
 
-    const headers = ['Timestamp', 'Action', 'Resource Type', 'Resource ID', 'User ID', 'IP Address', 'Details'];
+    const headers = ['Timestamp', 'Action', 'Resource Type', 'Resource ID', 'User ID', 'Username', 'IP Address', 'Details'];
     const rows = data.items.map(log => [
       formatDate(log.created_at),
       log.action,
       log.resource_type,
       log.resource_id || '',
       log.user_id || '',
+      log.user?.username || '',
       log.ip_address || '',
       log.details ? JSON.stringify(log.details) : '',
     ]);
