@@ -177,3 +177,12 @@ export const getDefaultPassword = (type: CertificateType, identifier: string): s
   }
   return identifier; // Username for user certs
 };
+
+export const getCRLURL = (): string => {
+    // cast import.meta to any to avoid TypeScript error when using Vite's import.meta.env
+    const base = (import.meta as any)?.env?.VITE_API_URL ?? '/';
+    // ensure there is no trailing slash on the base before appending the path
+    const normalizedBase = base.replace(/\/$/, '');
+    console.log('CRL URL:', `${normalizedBase}/ca/crl`);
+    return `${normalizedBase}/ca/crl`;
+};
