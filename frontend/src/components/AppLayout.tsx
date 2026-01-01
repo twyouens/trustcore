@@ -156,13 +156,13 @@ export const AppLayout = () => {
       <Layout>
         <Header className="app-header">
           <div className="header-content">
-            <div className="header-title">Certificate Authority Management</div>
+            <div className="header-title">Certificate Management</div>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div className="user-menu">
                 <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
                 <span className="user-info">
                   <span className="user-name">{user?.full_name || user?.username}</span>
-                  <span className="user-role">{user?.role}</span>
+                  <span className="user-username">{user?.username}</span>
                 </span>
               </div>
             </Dropdown>
