@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.user import Token, UserResponse
+from app.schemas.user import Token, UserResponse, AuthorizationRedirect
 from app.services.auth_service import auth_service, get_current_user
 from app.services.audit_service import audit_service
 from app.models.user import User
@@ -11,7 +11,7 @@ from app.core.config import settings
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-@router.get("/login")
+@router.get("/login", response_model=AuthorizationRedirect)
 def login():
     """
     Get OIDC authorization URL
@@ -24,8 +24,8 @@ def login():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate authorization URL",
         )
-    
-    return {"authorization_url": authorization_url}
+    return AuthorizationRedirect(redirect_uri=authorization_url)
+
 
 
 @router.post("/callback", response_model=Token)
