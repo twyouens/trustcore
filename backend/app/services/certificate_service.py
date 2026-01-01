@@ -7,6 +7,7 @@ from app.models.certificate import Certificate, CertificateType, CertificateStat
 from app.models.user import User
 from app.services.ca_service import ca_service
 from app.services.audit_service import audit_service
+from sqlalchemy.orm import joinedload
 import json
 
 
@@ -361,8 +362,12 @@ class CertificateService:
         skip: int = 0,
         limit: int = 100,
     ) -> Tuple[List[Certificate], int]:
-        """Get certificates with filtering"""
-        query = db.query(Certificate)
+        """Get certificates with filtering and user details"""        
+        query = db.query(Certificate).options(
+            joinedload(Certificate.requested_by),
+            joinedload(Certificate.approved_by),
+            joinedload(Certificate.revoked_by),
+        )
         
         # Filter by user if not admin
         if user and user.role.value != "admin":
@@ -386,7 +391,12 @@ class CertificateService:
     @staticmethod
     def get_certificate(db: Session, certificate_id: int) -> Optional[Certificate]:
         """Get a single certificate by ID"""
-        return db.query(Certificate).filter(Certificate.id == certificate_id).first()
+        return db.query(Certificate).options(
+            joinedload(Certificate.requested_by),
+            joinedload(Certificate.approved_by),
+            joinedload(Certificate.revoked_by),
+        ).filter(Certificate.id == certificate_id).first()
+
 
 
 certificate_service = CertificateService()
