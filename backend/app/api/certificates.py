@@ -12,6 +12,7 @@ from app.schemas.certificate import (
     CertificateResponse,
     CertificateDetailResponse,
     CertificateListResponse,
+    CertificateDownloadRequest,
 )
 from app.models.certificate import CertificateType, CertificateStatus
 from app.models.user import User, UserRole
@@ -33,7 +34,15 @@ async def request_machine_certificate(
     Generate a machine certificate for EAP-TLS authentication
     Requires admin role
     Auto-approved and immediately generated
+    
+    Supports multiple output formats:
+    - PEM: Standard PEM format (default)
+    - PKCS12: Password-protected bundle with private key and certificate
+    - DER: Binary DER format
     """
+    from app.services.certificate_formatter import certificate_formatter
+    from app.services.ca_service import ca_service
+    
     try:
         certificate, private_key = certificate_service.request_machine_certificate(
             db=db,
@@ -46,9 +55,37 @@ async def request_machine_certificate(
         # Prepare response with certificate details
         response = CertificateDetailResponse.model_validate(certificate)
         
-        # Include private key in response (only time it's available)
-        # In production, consider more secure delivery method
-        if private_key:
+        # Format certificate based on requested format
+        if request.output_format == "pkcs12":
+            # Get password (default to MAC address if not provided)
+            password = request.pkcs12_password or request.mac_address
+            
+            # Get CA certificate
+            ca_cert_pem = ca_service.get_ca_certificate()
+            
+            # Convert to PKCS12
+            p12_data = certificate_formatter.to_pkcs12(
+                private_key_pem=private_key,
+                certificate_pem=certificate.certificate,
+                password=password,
+                ca_cert_pem=ca_cert_pem,
+                friendly_name=f"Machine - {request.mac_address}"
+            )
+            
+            # Return as base64 for JSON transport
+            import base64
+            response.certificate = base64.b64encode(p12_data).decode()
+            
+        elif request.output_format == "der":
+            # Convert to DER
+            der_data = certificate_formatter.to_der(certificate.certificate)
+            
+            # Return as base64 for JSON transport
+            import base64
+            response.certificate = base64.b64encode(der_data).decode()
+            
+        else:  # PEM (default)
+            # Include private key in response (only time it's available)
             response.certificate = f"{private_key}\n{certificate.certificate}"
         
         return response
@@ -70,7 +107,15 @@ async def request_user_certificate(
     Generate a user certificate for EAP-TLS authentication
     Requires admin role
     Auto-approved and immediately generated
+    
+    Supports multiple output formats:
+    - PEM: Standard PEM format (default)
+    - PKCS12: Password-protected bundle with private key and certificate
+    - DER: Binary DER format
     """
+    from app.services.certificate_formatter import certificate_formatter
+    from app.services.ca_service import ca_service
+    
     try:
         # Use specified username or current user's username
         username = request.username or current_user.username
@@ -86,8 +131,37 @@ async def request_user_certificate(
         # Prepare response with certificate details
         response = CertificateDetailResponse.model_validate(certificate)
         
-        # Include private key in response
-        if private_key:
+        # Format certificate based on requested format
+        if request.output_format == "pkcs12":
+            # Get password (default to username if not provided)
+            password = request.pkcs12_password or username
+            
+            # Get CA certificate
+            ca_cert_pem = ca_service.get_ca_certificate()
+            
+            # Convert to PKCS12
+            p12_data = certificate_formatter.to_pkcs12(
+                private_key_pem=private_key,
+                certificate_pem=certificate.certificate,
+                password=password,
+                ca_cert_pem=ca_cert_pem,
+                friendly_name=f"User - {username}"
+            )
+            
+            # Return as base64 for JSON transport
+            import base64
+            response.certificate = base64.b64encode(p12_data).decode()
+            
+        elif request.output_format == "der":
+            # Convert to DER
+            der_data = certificate_formatter.to_der(certificate.certificate)
+            
+            # Return as base64 for JSON transport
+            import base64
+            response.certificate = base64.b64encode(der_data).decode()
+            
+        else:  # PEM (default)
+            # Include private key in response
             response.certificate = f"{private_key}\n{certificate.certificate}"
         
         return response
@@ -190,13 +264,26 @@ async def get_certificate(
     return certificate
 
 
-@router.get("/{certificate_id}/download", response_class=PlainTextResponse)
+@router.post("/{certificate_id}/download")
 async def download_certificate(
     certificate_id: int,
+    download_request: CertificateDownloadRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Download certificate in PEM format"""
+    """
+    Download certificate in specified format
+    
+    Formats:
+    - PEM: Standard PEM format (certificate only, no private key)
+    - PKCS12: Password-protected bundle with certificate and CA cert
+    - DER: Binary DER format
+    
+    Note: Private key is only available during initial certificate generation.
+    For PKCS12 format of already-generated certs, only cert + CA cert are included.
+    """
+    from app.services.certificate_formatter import certificate_formatter
+    from app.services.ca_service import ca_service
     from app.models.certificate import Certificate
     
     certificate = db.query(Certificate).filter_by(id=certificate_id).first()
@@ -233,13 +320,84 @@ async def download_certificate(
         user=current_user,
     )
     
-    return Response(
-        content=certificate.certificate,
-        media_type="application/x-pem-file",
-        headers={
-            "Content-Disposition": f'attachment; filename="{certificate.common_name}.pem"'
-        },
-    )
+    # Format conversion
+    if download_request.output_format == "pkcs12":
+        # Get password (default to common name/username)
+        password = download_request.pkcs12_password or certificate.common_name
+        
+        # Get CA certificate
+        ca_cert_pem = ca_service.get_ca_certificate()
+        
+        # Note: We don't have the private key for existing certs
+        # So we create a PKCS12 with just the cert + CA cert
+        # This is still useful for trust chain distribution
+        try:
+            # Try to create PKCS12 with cert only (no private key)
+            from cryptography import x509
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.backends import default_backend
+            from cryptography.hazmat.primitives.serialization import pkcs12
+            
+            cert = x509.load_pem_x509_certificate(
+                certificate.certificate.encode(),
+                backend=default_backend()
+            )
+            ca_cert = x509.load_pem_x509_certificate(
+                ca_cert_pem.encode(),
+                backend=default_backend()
+            )
+            
+            # Create PKCS12 without private key (cert + CA only)
+            p12_data = pkcs12.serialize_key_and_certificates(
+                name=certificate.common_name.encode(),
+                key=None,  # No private key available
+                cert=cert,
+                cas=[ca_cert],
+                encryption_algorithm=serialization.BestAvailableEncryption(password.encode())
+            )
+            
+            filename = f"{certificate.common_name}.p12"
+            media_type = certificate_formatter.get_media_type("pkcs12")
+            
+            return Response(
+                content=p12_data,
+                media_type=media_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"'
+                },
+            )
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create PKCS12: {str(e)}. Note: Private key not available for existing certificates.",
+            )
+    
+    elif download_request.output_format == "der":
+        # Convert to DER
+        der_data = certificate_formatter.to_der(certificate.certificate)
+        filename = f"{certificate.common_name}.der"
+        media_type = certificate_formatter.get_media_type("der")
+        
+        return Response(
+            content=der_data,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
+    
+    else:  # PEM (default)
+        filename = f"{certificate.common_name}.pem"
+        media_type = certificate_formatter.get_media_type("pem")
+        
+        return Response(
+            content=certificate.certificate,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
 
 
 @router.post("/{certificate_id}/approve", response_model=CertificateResponse)
