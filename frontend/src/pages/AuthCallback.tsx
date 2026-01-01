@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
 import { authService } from '@/services/auth.service';
@@ -9,9 +9,16 @@ export const AuthCallback = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const hasAttempted = useRef(false);
 
   useEffect(() => {
     const handleCallback = async () => {
+      // Prevent duplicate requests (React StrictMode in dev causes double render)
+      if (hasAttempted.current) {
+        return;
+      }
+      hasAttempted.current = true;
+
       const code = searchParams.get('code');
       const state = searchParams.get('state');
 
@@ -68,7 +75,7 @@ export const AuthCallback = () => {
     }}>
       <Spin size="large" />
       <div style={{ fontSize: '16px', color: '#595959' }}>
-        Completing authentication...
+        Signing you in, please wait...
       </div>
     </div>
   );
