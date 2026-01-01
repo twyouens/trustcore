@@ -112,6 +112,7 @@ export interface AuditLog {
   details: Record<string, any> | null;
   ip_address: string | null;
   created_at: string;
+  user?: UserSnippet | null;
 }
 
 // CA Info types
