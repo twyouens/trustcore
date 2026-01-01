@@ -1,8 +1,9 @@
-import { Card, Descriptions, Button, Space, Typography, Alert, Tabs, Divider } from 'antd';
+import { Card, Descriptions, Button, Space, Typography, Alert, Tabs, Divider, Input } from 'antd';
 import { DownloadOutlined, CopyOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { caService } from '@/services/ca.service';
 import { formatDate, downloadText, copyToClipboard } from '@/utils/helpers';
+import { getCrlUrl } from '@/utils/apiUrls';
 import { message } from 'antd';
 
 const { Title, Text, Paragraph } = Typography;
@@ -43,6 +44,13 @@ export const CAInformation = () => {
       if (success) {
         message.success('CA certificate copied to clipboard');
       }
+    }
+  };
+    const handleCopyCrlUrl = async () => {
+    const crlUrl = getCrlUrl();
+    const success = await copyToClipboard(crlUrl);
+    if (success) {
+      message.success('CRL URL copied to clipboard');
     }
   };
 
@@ -117,13 +125,29 @@ export const CAInformation = () => {
               <Paragraph type="secondary">
                 Download the CRL to check which certificates have been revoked
               </Paragraph>
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={handleDownloadCRL}
-                loading={crlLoading}
-              >
-                Download CRL (PEM)
-              </Button>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={handleDownloadCRL}
+                  loading={crlLoading}
+                >
+                  Download CRL (PEM)
+                </Button>
+                <Input
+                  readOnly
+                  value={getCrlUrl()}
+                  addonAfter={
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={handleCopyCrlUrl}
+                    >
+                      Copy URL
+                    </Button>
+                  }
+                />
+              </Space>
             </div>
           </Space>
         </Card>
@@ -135,7 +159,7 @@ export const CAInformation = () => {
                 key: 'windows',
                 label: 'Windows',
                 children: (
-                  <div>
+                  <div style={{ padding: 12 }}>
                     <Title level={5}>Installing CA Certificate on Windows</Title>
                     <ol>
                       <li>Download the CA certificate (PEM format)</li>
@@ -158,7 +182,7 @@ export const CAInformation = () => {
                 key: 'macos',
                 label: 'macOS',
                 children: (
-                  <div>
+                  <div style={{ padding: 12 }}>
                     <Title level={5}>Installing CA Certificate on macOS</Title>
                     <ol>
                       <li>Download the CA certificate (PEM format)</li>
@@ -177,7 +201,7 @@ export const CAInformation = () => {
                 key: 'linux',
                 label: 'Linux',
                 children: (
-                  <div>
+                  <div style={{ padding: 12 }}>
                     <Title level={5}>Installing CA Certificate on Linux</Title>
                     <Paragraph><strong>Ubuntu/Debian:</strong></Paragraph>
                     <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
@@ -196,7 +220,7 @@ export const CAInformation = () => {
                 key: 'ios',
                 label: 'iOS',
                 children: (
-                  <div>
+                  <div style={{ padding: 12 }}>
                     <Title level={5}>Installing CA Certificate on iOS</Title>
                     <ol>
                       <li>Email the CA certificate to yourself or host it on a web server</li>
@@ -216,7 +240,7 @@ export const CAInformation = () => {
                 key: 'android',
                 label: 'Android',
                 children: (
-                  <div>
+                  <div style={{ padding: 12 }}>
                     <Title level={5}>Installing CA Certificate on Android</Title>
                     <ol>
                       <li>Download the CA certificate to your device</li>
