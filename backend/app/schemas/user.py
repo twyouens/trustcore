@@ -41,3 +41,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[UserRole] = None
+
+class AuthorizationRedirect(BaseModel):
+    redirect_uri: str
