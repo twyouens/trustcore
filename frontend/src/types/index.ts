@@ -10,6 +10,14 @@ export interface User {
   last_login: string | null;
 }
 
+// User Snippets
+export interface UserSnippet {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string | null;
+}
+
 // Certificate types
 export type CertificateType = 'machine' | 'user' | 'server';
 export type CertificateStatus = 'pending' | 'approved' | 'rejected' | 'revoked';
@@ -33,6 +41,9 @@ export interface Certificate {
   approved_by_id: number | null;
   revoked_by_id: number | null;
   auto_approved: boolean;
+  revoked_by?: UserSnippet | null;
+  requested_by?: UserSnippet | null;
+  approved_by?: UserSnippet | null;
 }
 
 export interface CertificateDetail extends Certificate {
