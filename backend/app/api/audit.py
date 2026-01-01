@@ -22,10 +22,14 @@ async def list_audit_logs(
     db: Session = Depends(get_db),
 ):
     """
-    List audit logs
+    List audit logs with user information
     Requires admin role
     """
-    query = db.query(AuditLog)
+    from sqlalchemy.orm import joinedload
+    
+    query = db.query(AuditLog).options(
+        joinedload(AuditLog.user)
+    )
     
     # Apply filters
     if action:
@@ -43,20 +47,20 @@ async def list_audit_logs(
     # Apply pagination
     logs = query.order_by(AuditLog.created_at.desc()).offset(skip).limit(limit).all()
     
-    # Parse JSON details
+    # Parse JSON details and build response
     items = []
     for log in logs:
-        log_dict = {
-            "id": log.id,
-            "action": log.action,
-            "resource_type": log.resource_type,
-            "resource_id": log.resource_id,
-            "user_id": log.user_id,
-            "details": json.loads(log.details) if log.details else None,
-            "ip_address": log.ip_address,
-            "created_at": log.created_at,
-        }
-        items.append(AuditLogResponse(**log_dict))
+        items.append(AuditLogResponse(
+            id=log.id,
+            action=log.action,
+            resource_type=log.resource_type,
+            resource_id=log.resource_id,
+            user_id=log.user_id,
+            details=json.loads(log.details) if log.details else None,
+            ip_address=log.ip_address,
+            created_at=log.created_at,
+            user=log.user  # Automatically populated by joinedload
+        ))
     
     return AuditLogListResponse(
         total=total,
