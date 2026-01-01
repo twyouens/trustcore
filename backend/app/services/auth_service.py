@@ -20,7 +20,7 @@ class AuthService:
             client_id=settings.OIDC_CLIENT_ID,
             client_secret=settings.OIDC_CLIENT_SECRET,
             redirect_uri=settings.OIDC_REDIRECT_URI,
-            scope="openid profile email",
+            scope=settings.OIDC_SCOPE,
         )
     
     def get_authorization_url(self) -> Optional[str]:
@@ -104,10 +104,10 @@ class AuthService:
         db: Session
     ) -> User:
         """Get existing user or create new user (JIT provisioning)"""
-        oidc_subject = userinfo.get("username")
+        oidc_subject = userinfo.get(settings.OIDC_USER_KEY)
 
         if not oidc_subject:
-            raise ValueError("Missing 'username' claim in user info")
+            raise ValueError(f"Missing '{settings.OIDC_USER_KEY}' claim in user info")
 
         # Try to find existing user
         user = db.query(User).filter(User.username == oidc_subject).first()
@@ -131,7 +131,7 @@ class AuthService:
         email = userinfo.get("email")
         if not email:
             raise ValueError("Missing 'email' claim in user info")
-        username = userinfo.get("username")
+        username = oidc_subject
         full_name = userinfo.get("name")
         user_role = UserRole.ADMIN if self.user_in_admin_group(userinfo) else UserRole.USER
 
