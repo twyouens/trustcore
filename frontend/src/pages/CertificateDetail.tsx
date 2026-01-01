@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { certificateService } from '@/services/certificate.service';
 import { CertificateStatusBadge } from '@/components/CertificateStatusBadge';
 import { CertificateTypeBadge } from '@/components/CertificateTypeBadge';
+import { UserBadge } from '@/components/UserBadge';
 import { DownloadCertificateModal } from '@/components/DownloadCertificateModal';
 import { formatDate, copyToClipboard, getDefaultPassword } from '@/utils/helpers';
 import { useAuthStore } from '@/store/authStore';
@@ -203,15 +204,15 @@ export const CertificateDetail = () => {
               {formatDate(certificate.created_at)}
             </Descriptions.Item>
             <Descriptions.Item label="Requested By">
-              User ID: {certificate.requested_by_id}
+              {certificate.requested_by_id && certificate.requested_by ? <UserBadge name={certificate.requested_by.full_name ?? 'N/A'} username={certificate.requested_by.username ?? 'N/A'} /> : 'N/A'}
             </Descriptions.Item>
             {certificate.approved_at && (
               <>
-                <Descriptions.Item label="Approved At">
+                <Descriptions.Item label={certificate.status === 'rejected' ? "Rejected At" : "Approved At"}>
                   {formatDate(certificate.approved_at)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Approved By">
-                  {certificate.approved_by_id ? `User ID: ${certificate.approved_by_id}` : 'N/A'}
+                <Descriptions.Item label={certificate.status === 'rejected' ? "Rejected By" : "Approved By"}>
+                  {certificate.approved_by_id && certificate.approved_by ? <UserBadge name={certificate.approved_by.full_name ?? 'N/A'} username={certificate.approved_by.username ?? 'N/A'} /> : 'N/A'}
                 </Descriptions.Item>
               </>
             )}
@@ -221,7 +222,7 @@ export const CertificateDetail = () => {
                   {formatDate(certificate.revoked_at)}
                 </Descriptions.Item>
                 <Descriptions.Item label="Revoked By">
-                  {certificate.revoked_by_id ? `User ID: ${certificate.revoked_by_id}` : 'N/A'}
+                  {certificate.revoked_by_id && certificate.revoked_by ? <UserBadge name={certificate.revoked_by.full_name ?? 'N/A'} username={certificate.revoked_by.username ?? 'N/A'} /> : 'N/A'}
                 </Descriptions.Item>
                 <Descriptions.Item label="Revocation Reason" span={2}>
                   {certificate.revocation_reason || 'N/A'}
