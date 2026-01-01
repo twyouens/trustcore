@@ -62,21 +62,18 @@ export const UserProfile = () => {
             <Descriptions.Item label="Full Name" span={2}>
               {user.full_name || 'Not set'}
             </Descriptions.Item>
-            <Descriptions.Item label="User ID">
+            <Descriptions.Item label="User ID" span={2}>
               {user.id}
             </Descriptions.Item>
-            <Descriptions.Item label="Role">
+            <Descriptions.Item label="Role" span={2}>
               <Tag color={user.role === 'admin' ? 'red' : 'blue'}>
                 {user.role}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Account Status">
+            <Descriptions.Item label="Account Status" span={2}>
               <Tag color={user.is_active ? 'green' : 'default'}>
                 {user.is_active ? 'Active' : 'Inactive'}
               </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Member Since">
-              {formatDate(user.created_at)}
             </Descriptions.Item>
             <Descriptions.Item label="Last Login" span={2}>
               {user.last_login ? formatDate(user.last_login) : 'Never'}
