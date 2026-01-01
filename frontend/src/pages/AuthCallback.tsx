@@ -23,7 +23,11 @@ export const AuthCallback = () => {
       const state = searchParams.get('state');
 
       if (!code || !state) {
-        setError('Missing authorization code or state parameter');
+        if (searchParams.get('error')) {
+          setError(searchParams.get('error'));
+        } else {
+          setError('Missing authorization code or state parameter');
+        }
         return;
       }
 
