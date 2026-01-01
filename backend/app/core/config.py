@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     OIDC_CLIENT_ID: str
     OIDC_CLIENT_SECRET: str
     OIDC_REDIRECT_URI: str = "http://localhost:3000/auth/callback"
+    OIDC_USER_KEY: str = "sub"
     OIDC_ADMIN_GROUP: str = "admins"
+    OIDC_SCOPE: str = "openid profile email"
 
     # CA Configuration
     CA_NAME: str = "TrustCore Root CA"
