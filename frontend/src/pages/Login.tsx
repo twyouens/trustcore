@@ -52,7 +52,7 @@ export const Login = () => {
           
           <div>
             <Title level={4} style={{ marginBottom: 8 }}>
-              Certificate Management
+              Certificate Management Portal
             </Title>
           </div>
 
