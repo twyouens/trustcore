@@ -65,7 +65,7 @@ export const Login = () => {
             block
             className="login-button"
           >
-            Login with OIDC
+            Sign in with SSO
           </Button>
         </Space>
       </Card>
