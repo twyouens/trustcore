@@ -151,12 +151,11 @@ export const AuditLogs = () => {
               allowClear
               options={[
                 { label: 'All Actions', value: undefined },
-                { label: 'Create', value: 'CREATE' },
-                { label: 'Approve', value: 'APPROVE' },
-                { label: 'Reject', value: 'REJECT' },
-                { label: 'Revoke', value: 'REVOKE' },
-                { label: 'Download', value: 'DOWNLOAD' },
-                { label: 'Login', value: 'LOGIN' },
+                { label: 'Certificate Approved', value: 'certificate_approved' },
+                { label: 'Certificate Rejected', value: 'certificate_rejected' },
+                { label: 'Certificate Revoked', value: 'certificate_revoked' },
+                { label: 'Certificate Downloaded', value: 'certificate_downloaded' },
+                { label: 'Login', value: 'user_login' }
               ]}
             />
 
@@ -168,9 +167,9 @@ export const AuditLogs = () => {
               allowClear
               options={[
                 { label: 'All Resources', value: undefined },
-                { label: 'Certificate', value: 'Certificate' },
-                { label: 'User', value: 'User' },
-                { label: 'CA', value: 'CA' },
+                { label: 'Certificate', value: 'certificate' },
+                { label: 'User', value: 'user' },
+                { label: 'CA', value: 'ca' },
               ]}
             />
           </Space>
