@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, field_validator, field_serializer
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Optional, List, Any
 from datetime import datetime
 from app.models.certificate import CertificateType, CertificateStatus
 from app.schemas.user import UserSnippet
@@ -90,17 +90,35 @@ class CertificateResponse(BaseModel):
     approved_by: Optional[UserSnippet] = None
     revoked_by: Optional[UserSnippet] = None
     
-    @field_serializer('subject_alternative_names')
-    def serialize_sans(self, sans: Optional[List[str]], _info) -> Optional[List[str]]:
-        """Handle SANs whether they come as string or list"""
-        if sans is None:
-            return None
-        if isinstance(sans, str):
-            try:
-                return json.loads(sans)
-            except (json.JSONDecodeError, TypeError):
-                return None
-        return sans
+    @model_validator(mode='before')
+    @classmethod
+    def parse_sans(cls, data: Any) -> Any:
+        """Parse subject_alternative_names from JSON string if needed"""
+        # Handle SQLAlchemy model objects
+        if hasattr(data, 'subject_alternative_names'):
+            sans = data.subject_alternative_names
+            if sans and isinstance(sans, str):
+                try:
+                    # Parse and set it back on the object
+                    parsed_sans = json.loads(sans)
+                    # Create a dict from the model for modification
+                    if hasattr(data, '__dict__'):
+                        data_dict = {k: v for k, v in data.__dict__.items() if not k.startswith('_')}
+                        data_dict['subject_alternative_names'] = parsed_sans
+                        return data_dict
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        
+        # Handle dict input
+        if isinstance(data, dict):
+            sans = data.get('subject_alternative_names')
+            if sans and isinstance(sans, str):
+                try:
+                    data['subject_alternative_names'] = json.loads(sans)
+                except (json.JSONDecodeError, TypeError):
+                    data['subject_alternative_names'] = None
+        
+        return data
     
     class Config:
         from_attributes = True
