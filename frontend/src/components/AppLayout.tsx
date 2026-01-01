@@ -159,7 +159,7 @@ export const AppLayout = () => {
             <div className="header-title">Certificate Management</div>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div className="user-menu">
-                <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+                <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#177312ff' }} />
                 <span className="user-info">
                   <span className="user-name">{user?.full_name || user?.username}</span>
                   <span className="user-username">{user?.username}</span>
