@@ -291,6 +291,7 @@ class CertificateService:
             certificate_id=certificate.id,
             admin=admin,
             approved=False,
+            comment=reason if reason else None,
         )
         
         return certificate
