@@ -12,6 +12,9 @@ RUN npm ci
 # Copy source code
 COPY frontend/ ./
 
+ENV VITE_API_URL=/api/v1
+ENV VITE_APP_NAME="TrustCore"
+
 # Build the application
 RUN npm run build
 
