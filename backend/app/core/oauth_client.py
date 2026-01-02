@@ -10,9 +10,9 @@ from typing import Optional, Dict, Any, Tuple
 from jwt import PyJWKClient
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
-import logging
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Try to import redis_client if available
 try:
