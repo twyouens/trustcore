@@ -9,8 +9,10 @@ from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import TokenData
 from app.core.oauth_client import OAuthClient
+from app.core.logging import get_logger
 
 security = HTTPBearer()
+logger = get_logger(__name__)
 
 
 class AuthService:
@@ -42,6 +44,7 @@ class AuthService:
         token_data, claims = self.oauth_client.fetch_token(code, state)
         
         if not token_data or not claims:
+            logger.error(f"Failed to exchange code for token: {code}")
             return None
         
         # Extract user info from ID token claims
@@ -85,6 +88,7 @@ class AuthService:
             role: str = payload.get("role")
             
             if username is None:
+                logger.error(f"Missing 'sub' claim in token: {token}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Could not validate credentials",
@@ -93,6 +97,7 @@ class AuthService:
             return TokenData(username=username, role=UserRole(role) if role else None)
             
         except JWTError:
+            logger.error(f"Failed to decode token: {token}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
@@ -107,6 +112,7 @@ class AuthService:
         oidc_subject = userinfo.get(settings.OIDC_USER_KEY)
 
         if not oidc_subject:
+            logger.error(f"Missing '{settings.OIDC_USER_KEY}' claim in user info")
             raise ValueError(f"Missing '{settings.OIDC_USER_KEY}' claim in user info")
 
         # Try to find existing user
@@ -130,6 +136,7 @@ class AuthService:
         # Create new user (JIT provisioning)
         email = userinfo.get("email")
         if not email:
+            logger.error(f"Missing 'email' claim in user info")
             raise ValueError("Missing 'email' claim in user info")
         username = oidc_subject
         full_name = userinfo.get("name")
@@ -169,12 +176,14 @@ async def get_current_user(
     user = db.query(User).filter(User.username == token_data.username).first()
     
     if user is None:
+        logger.error(f"User not found: {token_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
     
     if not user.is_active:
+        logger.error(f"Inactive user: {token_data.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
@@ -188,6 +197,7 @@ async def get_current_admin(
 ) -> User:
     """Dependency to require admin role"""
     if current_user.role != UserRole.ADMIN:
+        logger.error(f"User {current_user.id} attempted to access admin resource")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required",

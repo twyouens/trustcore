@@ -9,8 +9,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from app.core.config import settings
 from app.models.certificate import CertificateType
+from app.core.logging import get_logger
 import secrets
 
+logger = get_logger(__name__)
 
 class CAService:
     def __init__(self):
@@ -27,11 +29,11 @@ class CAService:
     def initialize_ca(self) -> None:
         """Initialize the CA if it doesn't exist"""
         if self.ca_key_path.exists() and self.ca_cert_path.exists():
-            print("CA already initialized")
+            logger.info("CA already initialized")
             return
-        
-        print("Initializing Certificate Authority...")
-        
+
+        logger.info("Initializing Certificate Authority...")
+
         # Generate CA private key
         ca_key = rsa.generate_private_key(
             public_exponent=65537,
@@ -40,15 +42,20 @@ class CAService:
         )
         
         # Create CA certificate
-        subject = issuer = x509.Name([
+        subject_attributes = [
             x509.NameAttribute(NameOID.COUNTRY_NAME, settings.CA_COUNTRY),
             x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, settings.CA_STATE),
             x509.NameAttribute(NameOID.LOCALITY_NAME, settings.CA_LOCALITY),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, settings.CA_ORGANIZATION),
             x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, settings.CA_ORGANIZATIONAL_UNIT),
             x509.NameAttribute(NameOID.COMMON_NAME, settings.CA_NAME),
-            x509.NameAttribute(NameOID.EMAIL_ADDRESS, settings.CA_EMAIL),
-        ])
+        ]
+        
+        # Only add email if provided
+        if settings.CA_EMAIL:
+            subject_attributes.append(x509.NameAttribute(NameOID.EMAIL_ADDRESS, settings.CA_EMAIL))
+        
+        subject = issuer = x509.Name(subject_attributes)
         
         ca_cert = (
             x509.CertificateBuilder()
@@ -101,17 +108,18 @@ class CAService:
         # Set proper permissions
         os.chmod(self.ca_key_path, 0o600)
         os.chmod(self.ca_cert_path, 0o644)
-        
-        print(f"CA initialized successfully")
-        print(f"CA Certificate: {self.ca_cert_path}")
-        print(f"CA Private Key: {self.ca_key_path}")
-    
+
+        logger.info("CA initialized successfully")
+        logger.info(f"CA Certificate: {self.ca_cert_path}")
+        logger.info(f"CA Private Key: {self.ca_key_path}")
+
     def load_ca(self) -> Tuple[rsa.RSAPrivateKey, x509.Certificate]:
         """Load CA private key and certificate"""
         if self._ca_key and self._ca_cert:
             return self._ca_key, self._ca_cert
         
         if not self.ca_key_path.exists() or not self.ca_cert_path.exists():
+            logger.error("CA not initialized. Run initialize_ca() first.")
             raise FileNotFoundError("CA not initialized. Run initialize_ca() first.")
         
         # Load private key
@@ -316,6 +324,7 @@ class CAService:
         
         # Validate CSR signature
         if not csr.is_signature_valid:
+            logger.error("Invalid CSR signature")
             raise ValueError("Invalid CSR signature")
         
         # Build certificate from CSR
@@ -389,6 +398,7 @@ class CAService:
             
             # Check signature
             if not csr.is_signature_valid:
+                logger.error("Invalid CSR signature")
                 return False, "Invalid CSR signature", None
             
             # Check key size for RSA keys
@@ -396,6 +406,7 @@ class CAService:
             if isinstance(public_key, rsa.RSAPublicKey):
                 key_size = public_key.key_size
                 if key_size < 2048:
+                    logger.error(f"Key size {key_size} is too small (minimum 2048 bits)")
                     return False, f"Key size {key_size} is too small (minimum 2048 bits)", None
             
             # Extract SANs if present

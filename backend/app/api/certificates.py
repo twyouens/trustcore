@@ -19,9 +19,11 @@ from app.models.user import User, UserRole
 from app.services.auth_service import get_current_user, get_current_admin
 from app.services.certificate_service import certificate_service
 from app.services.audit_service import audit_service
-import json
+from app.core.logging import get_logger
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
+
+logger = get_logger(__name__)
 
 
 @router.post("/machine", response_model=CertificateDetailResponse)
@@ -91,6 +93,7 @@ async def request_machine_certificate(
         return response
         
     except Exception as e:
+        logger.error(f"Failed to request machine certificate: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
@@ -167,6 +170,7 @@ async def request_user_certificate(
         return response
         
     except Exception as e:
+        logger.error(f"Failed to request user certificate: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
@@ -194,11 +198,13 @@ async def request_server_certificate(
         return certificate
         
     except ValueError as e:
+        logger.error(f"Failed to request server certificate: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
+        logger.error(f"Failed to request server certificate: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
@@ -257,6 +263,7 @@ async def get_certificate(
     
     # Check permissions
     if current_user.role != UserRole.ADMIN and certificate.requested_by_id != current_user.id:
+        logger.error(f"User {current_user.id} is not authorized to view certificate {certificate_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this certificate",
@@ -297,18 +304,21 @@ async def download_certificate(
     
     # Check permissions
     if current_user.role != UserRole.ADMIN and certificate.requested_by_id != current_user.id:
+        logger.error(f"User {current_user.id} is not authorized to download certificate {certificate_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to download this certificate",
         )
     
     if certificate.status != CertificateStatus.APPROVED:
+        logger.error(f"User {current_user.id} attempted to download unapproved certificate {certificate_id}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Certificate is not approved",
         )
     
     if not certificate.certificate:
+        logger.error(f"User {current_user.id} attempted to download certificate {certificate_id} without certificate data")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Certificate data not available",
@@ -369,6 +379,7 @@ async def download_certificate(
             )
             
         except Exception as e:
+            logger.error(f"Failed to create PKCS12 for certificate {certificate_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to create PKCS12: {str(e)}. Note: Private key not available for existing certificates.",
@@ -421,6 +432,7 @@ async def approve_certificate(
             )
         else:
             if not approval.rejection_reason:
+                logger.error(f"User {current_user.id} attempted to reject certificate {certificate_id} without a reason")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Rejection reason is required",
@@ -435,6 +447,7 @@ async def approve_certificate(
         return certificate
         
     except ValueError as e:
+        logger.error(f"Failed to approve/reject certificate {certificate_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
@@ -463,6 +476,7 @@ async def revoke_certificate(
         return certificate
         
     except ValueError as e:
+        logger.error(f"Failed to revoke certificate {certificate_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),

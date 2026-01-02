@@ -8,8 +8,10 @@ from app.models.user import User
 from app.services.ca_service import ca_service
 from app.services.audit_service import audit_service
 from sqlalchemy.orm import joinedload
+from app.core.logging import get_logger
 import json
 
+logger = get_logger(__name__)
 
 class CertificateService:
     @staticmethod
@@ -220,6 +222,7 @@ class CertificateService:
             raise ValueError("Certificate not found")
         
         if certificate.status != CertificateStatus.PENDING:
+            logger.error(f"Certificate is not pending: {certificate.id}")
             raise ValueError("Certificate is not pending")
         
         # Sign the certificate
@@ -230,6 +233,7 @@ class CertificateService:
                 cert_type=certificate.certificate_type,
             )
         else:
+            logger.error(f"Failed to sign CSR for certificate {certificate.id}")
             raise ValueError("Only server certificates require approval")
         
         # Extract serial number and validity
@@ -271,9 +275,11 @@ class CertificateService:
         certificate = db.query(Certificate).filter(Certificate.id == certificate_id).first()
         
         if not certificate:
+            logger.error(f"Certificate not found: {certificate_id}")
             raise ValueError("Certificate not found")
         
         if certificate.status != CertificateStatus.PENDING:
+            logger.error(f"Certificate is not pending: {certificate.id}")
             raise ValueError("Certificate is not pending")
         
         # Update certificate record
@@ -307,9 +313,11 @@ class CertificateService:
         certificate = db.query(Certificate).filter(Certificate.id == certificate_id).first()
         
         if not certificate:
+            logger.error(f"Certificate not found: {certificate_id}")
             raise ValueError("Certificate not found")
         
         if certificate.status != CertificateStatus.APPROVED:
+            logger.error(f"Only approved certificates can be revoked: {certificate.id}")
             raise ValueError("Only approved certificates can be revoked")
         
         # Update certificate record

@@ -7,8 +7,11 @@ from app.services.audit_service import audit_service
 from app.models.user import User
 from datetime import timedelta
 from app.core.config import settings
+from app.core.logging import get_logger
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+logger = get_logger(__name__)
 
 
 @router.get("/login", response_model=AuthorizationRedirect)
@@ -43,6 +46,7 @@ def callback(
         userinfo = auth_service.exchange_code_for_token(code, state)
         
         if not userinfo:
+            logger.error(f"Authentication error: Invalid or expired state")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication failed: Invalid or expired state",
@@ -64,14 +68,16 @@ def callback(
         return {"access_token": access_token, "token_type": "bearer"}
         
     except ValueError as e:
+        logger.error(f"Authentication error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Authentication failed: {str(e)}",
+            detail=f"Authentication failed: Bad Request",
         )
     except Exception as e:
+        logger.error(f"Authentication error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Authentication failed: {str(e)}",
+            detail=f"Authentication failed: Internal Server Error",
         )
 
 
