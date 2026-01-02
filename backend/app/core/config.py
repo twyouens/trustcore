@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     CA_LOCALITY: str = "San Francisco"
     CA_ORGANIZATION: str = "Your Organization"
     CA_ORGANIZATIONAL_UNIT: str = "IT Department"
-    CA_EMAIL: str = "ca@example.com"
+    CA_EMAIL: Optional[str] = None
     CA_VALIDITY_DAYS: int = 7300  # 20 years for root CA
     CA_KEY_SIZE: int = 4096
     
@@ -54,7 +54,13 @@ class Settings(BaseSettings):
     CA_KEY_FILE: str = "ca_key.pem"
     CA_CERT_FILE: str = "ca_cert.pem"
     CRL_FILE: str = "crl.pem"
-    
+
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    LOG_FILE: str = "app.log"
+    LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10MB
+    LOG_BACKUP_COUNT: int = 5
+
     class Config:
         env_file = ".env"
         case_sensitive = True
