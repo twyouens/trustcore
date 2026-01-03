@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Tuple
 from cryptography import x509
-from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
+from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID, AuthorityInformationAccessOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -139,10 +139,66 @@ class CAService:
         
         return self._ca_key, self._ca_cert
     
+    def _load_ca_key(self) -> rsa.RSAPrivateKey:
+        """Load CA private key (for OCSP service)"""
+        ca_key, _ = self.load_ca()
+        return ca_key
+    
+    def _load_ca_certificate(self) -> x509.Certificate:
+        """Load CA certificate (for OCSP service)"""
+        _, ca_cert = self.load_ca()
+        return ca_cert
+    
     def get_ca_certificate(self) -> str:
         """Get CA certificate in PEM format"""
         _, ca_cert = self.load_ca()
         return ca_cert.public_bytes(serialization.Encoding.PEM).decode()
+    
+    def _add_authority_info_access(
+        self,
+        cert_builder: x509.CertificateBuilder
+    ) -> x509.CertificateBuilder:
+        """
+        Add Authority Information Access extension with OCSP URL and CRL Distribution Point
+
+        Args:
+            cert_builder: Certificate builder object
+
+        Returns:
+            Updated certificate builder with AIA extension
+        """
+        # Add OCSP URL if enabled
+        if settings.OCSP_ENABLED and settings.OCSP_URL:
+            # Create OCSP access description
+            ocsp_url = x509.UniformResourceIdentifier(settings.OCSP_URL)
+            ocsp_access = x509.AccessDescription(
+                access_method=AuthorityInformationAccessOID.OCSP,
+                access_location=ocsp_url
+            )
+
+            # Add Authority Information Access extension
+            aia_extension = x509.AuthorityInformationAccess([ocsp_access])
+
+            cert_builder = cert_builder.add_extension(
+                aia_extension,
+                critical=False
+            )
+        
+        # Add CRL Distribution Point if enabled
+        if settings.CRL_ENABLED and settings.API_BASE_URL:
+            crl_url = f"{settings.API_BASE_URL}/api/v1/ca/crl"
+            crl_dp = x509.DistributionPoint(
+                full_name=[x509.UniformResourceIdentifier(crl_url)],
+                relative_name=None,
+                crl_issuer=None,
+                reasons=None
+            )
+            cert_builder = cert_builder.add_extension(
+                x509.CRLDistributionPoints([crl_dp]),
+                critical=False
+            )
+
+        return cert_builder
     
     def generate_machine_certificate(
         self,
@@ -172,7 +228,7 @@ class CAService:
         ])
         
         # Build certificate
-        cert = (
+        builder = (
             x509.CertificateBuilder()
             .subject_name(subject)
             .issuer_name(ca_cert.subject)
@@ -210,8 +266,13 @@ class CAService:
                 x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_cert.public_key()),
                 critical=False,
             )
-            .sign(ca_key, hashes.SHA256(), backend=default_backend())
         )
+        
+        # Add OCSP URL and CRL Distribution Point
+        builder = self._add_authority_info_access(builder)
+        
+        # Sign certificate
+        cert = builder.sign(ca_key, hashes.SHA256(), backend=default_backend())
         
         # Convert to PEM format
         private_key_pem = private_key.private_bytes(
@@ -252,7 +313,7 @@ class CAService:
         ])
         
         # Build certificate
-        cert = (
+        builder = (
             x509.CertificateBuilder()
             .subject_name(subject)
             .issuer_name(ca_cert.subject)
@@ -290,8 +351,13 @@ class CAService:
                 x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_cert.public_key()),
                 critical=False,
             )
-            .sign(ca_key, hashes.SHA256(), backend=default_backend())
         )
+        
+        # Add OCSP URL and CRL Distribution Point
+        builder = self._add_authority_info_access(builder)
+        
+        # Sign certificate
+        cert = builder.sign(ca_key, hashes.SHA256(), backend=default_backend())
         
         # Convert to PEM format
         private_key_pem = private_key.private_bytes(
@@ -379,6 +445,9 @@ class CAService:
             x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_cert.public_key()),
             critical=False,
         )
+        
+        # Add OCSP URL and CRL Distribution Point
+        builder = self._add_authority_info_access(builder)
         
         # Sign certificate
         cert = builder.sign(ca_key, hashes.SHA256(), backend=default_backend())

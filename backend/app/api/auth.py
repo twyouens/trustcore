@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.user import Token, UserResponse, AuthorizationRedirect
+from app.schemas.api_token import TokenLoginResponse, TokenLoginRequest
 from app.services.auth_service import auth_service, get_current_user
 from app.services.audit_service import audit_service
+from app.services.api_token_service import api_token_service
 from app.models.user import User
-from datetime import timedelta
+from datetime import timedelta, datetime
 from app.core.config import settings
 from app.core.logging import get_logger
 
@@ -98,3 +100,79 @@ async def logout(
     This endpoint exists for consistency but JWT tokens can't be invalidated server-side
     """
     return {"message": "Logged out successfully"}
+
+@router.post("/token/login", response_model=TokenLoginResponse)
+async def token_login(
+    request: TokenLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Exchange API token for JWT
+    
+    This endpoint allows automation scripts to exchange their API token
+    for a short-lived JWT token that can be used for subsequent API requests.
+    
+    Flow:
+    1. Script provides API token
+    2. Server validates token and returns JWT
+    3. Script uses JWT for API calls (same as OIDC flow)
+    4. JWT expires after configured time (default 30 minutes)
+    5. Script exchanges API token again for new JWT
+    
+    Args:
+        request: TokenLoginRequest with api_token
+    
+    Returns:
+        TokenLoginResponse with JWT access token
+    """
+    # Authenticate the API token
+    user = api_token_service.authenticate_token(db, request.api_token)
+    
+    if not user:
+        # Log failed authentication attempt
+        audit_service.log_api_token_login_failed(
+            db=db,
+            user=None,
+            ip_address=None,
+            reason="Invalid or expired API token"
+        )
+        
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired API token"
+        )
+    
+    # Check if user is active
+    if not user.is_active:
+        audit_service.log_api_token_login_failed(
+            db=db,
+            user=user,
+            ip_address=None,
+            reason="User account is inactive"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    
+    # Create JWT access token (same as OIDC flow)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.email, "role": user.role.value},
+        expires_delta=access_token_expires
+    )
+    
+    # Update user's last login
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
+    # Audit log
+    audit_service.log
+    
+    return TokenLoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=user
+    )
+    

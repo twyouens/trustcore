@@ -30,3 +30,6 @@ redis
 
 # Utilities
 python-dateutil
+
+httpx>=0.24.0
+asn1crypto>=1.5.0

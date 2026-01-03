@@ -43,9 +43,22 @@ class Settings(BaseSettings):
     CRL_ENABLED: bool = True
     CRL_UPDATE_HOURS: int = 24
     OCSP_ENABLED: bool = True
-    OCSP_URL: str = "http://localhost:8000/ocsp"
+    OCSP_URL: str = "http://localhost:8000/api/v1/ca/ocsp"
+
+    # SCEP Configuration
+    SCEP_ENABLED: bool = True
+    SCEP_VALIDATION_TIMEOUT: int = 5  # Seconds to wait for validation endpoints
+    SCEP_ALLOW_WITHOUT_VALIDATION: bool = True  # Allow signing if validation fails (not 200/404)
+
+    # API Token Configuration
+    API_TOKEN_PREFIX: str = "tca_"  # TrustCore API token prefix
     
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
     # Application
+    API_BASE_URL: str = "http://localhost:8000"
     API_V1_PREFIX: str = "/api/v1"
     PROJECT_NAME: str = "TrustCore"
     
