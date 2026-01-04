@@ -14,6 +14,9 @@ import {
   LaptopOutlined,
   TeamOutlined,
   CloudServerOutlined,
+  SettingOutlined,
+  ApiOutlined,
+  CreditCardOutlined
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { certificateService } from '@/services/certificate.service';
@@ -120,12 +123,6 @@ export const AppLayout = () => {
             ),
             onClick: () => navigate('/approvals'),
           },
-          {
-            key: '/audit',
-            icon: <AuditOutlined />,
-            label: 'Audit Logs',
-            onClick: () => navigate('/audit'),
-          },
         ]
       : []),
     {
@@ -134,6 +131,35 @@ export const AppLayout = () => {
       label: 'CA Information',
       onClick: () => navigate('/ca-info'),
     },
+    ...(isAdmin
+      ? [
+          {
+            key: 'settings',
+            icon: <SettingOutlined />,
+            label: 'Settings',
+            children: [
+              {
+                key: '/settings/api-tokens',
+                icon: <CreditCardOutlined />,
+                label: 'API Tokens',
+                onClick: () => navigate('/settings/api-tokens'),
+              },
+              {
+                key: '/settings/scep-clients',
+                icon: <ApiOutlined />,
+                label: 'SCEP Clients',
+                onClick: () => navigate('/settings/scep-clients'),
+              },
+              {
+                key: '/settings/audit',
+                icon: <AuditOutlined />,
+                label: 'Audit Logs',
+                onClick: () => navigate('/settings/audit'),
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -148,7 +174,7 @@ export const AppLayout = () => {
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['request']}
+          defaultOpenKeys={['request', 'settings']}
           items={menuItems}
           style={{ borderRight: 0 }}
         />
