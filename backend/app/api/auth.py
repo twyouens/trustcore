@@ -126,7 +126,7 @@ async def token_login(
         TokenLoginResponse with JWT access token
     """
     # Authenticate the API token
-    user = api_token_service.authenticate_token(db, request.api_token)
+    user, api_token = api_token_service.authenticate_token(db, request.api_token)
     
     if not user:
         # Log failed authentication attempt
@@ -167,8 +167,12 @@ async def token_login(
     db.commit()
     
     # Audit log
-    audit_service.log
-    
+    audit_service.log_api_token_login_success(
+        db=db,
+        user=user,
+        token_id=api_token.id
+    )
+
     return TokenLoginResponse(
         access_token=access_token,
         token_type="bearer",
