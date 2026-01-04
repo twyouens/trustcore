@@ -15,6 +15,10 @@ import { PendingApprovals } from './pages/PendingApprovals';
 import { AuditLogs } from './pages/AuditLogs';
 import { CAInformation } from './pages/CAInformation';
 import { UserProfile } from './pages/UserProfile';
+import { APITokens } from './pages/APITokens';
+import { APITokenDetail } from './pages/APITokenDetail';
+import { SCEPClients } from './pages/SCEPClients';
+import { SCEPClientDetail } from './pages/SCEPClientDetail';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -60,7 +64,11 @@ function App() {
                 <Route path="/certificates/generate-machine" element={<GenerateMachineCert />} />
                 <Route path="/certificates/generate-user" element={<GenerateUserCert />} />
                 <Route path="/approvals" element={<PendingApprovals />} />
-                <Route path="/audit" element={<AuditLogs />} />
+                <Route path="/settings/audit" element={<AuditLogs />} />
+                <Route path="/settings/api-tokens" element={<APITokens />} />
+                <Route path="/settings/api-tokens/:id" element={<APITokenDetail />} />
+                <Route path="/settings/scep-clients" element={<SCEPClients />} />
+                <Route path="/settings/scep-clients/:id" element={<SCEPClientDetail />} />
               </Route>
             </Route>
 
