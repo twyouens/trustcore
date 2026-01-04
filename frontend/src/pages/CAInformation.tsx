@@ -3,7 +3,7 @@ import { DownloadOutlined, CopyOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { caService } from '@/services/ca.service';
 import { formatDate, downloadText, copyToClipboard } from '@/utils/helpers';
-import { getCrlUrl } from '@/utils/apiUrls';
+import { getCrlUrl, getCaCertificateUrl, getOcspUrl } from '@/utils/apiUrls';
 import { message } from 'antd';
 
 const { Title, Text, Paragraph } = Typography;
@@ -46,11 +46,28 @@ export const CAInformation = () => {
       }
     }
   };
-    const handleCopyCrlUrl = async () => {
+
+  const handleCopyCrlUrl = async () => {
     const crlUrl = getCrlUrl();
     const success = await copyToClipboard(crlUrl);
     if (success) {
       message.success('CRL URL copied to clipboard');
+    }
+  };
+
+  const handleCopyCaCertUrl = async () => {
+    const caCertUrl = getCaCertificateUrl();
+    const success = await copyToClipboard(caCertUrl);
+    if (success) {
+      message.success('CA Certificate URL copied to clipboard');
+    }
+  };
+
+  const handleCopyOcspUrl = async () => {
+    const ocspUrl = getOcspUrl();
+    const success = await copyToClipboard(ocspUrl);
+    if (success) {
+      message.success('OCSP URL copied to clipboard');
     }
   };
 
@@ -99,22 +116,38 @@ export const CAInformation = () => {
               <Paragraph type="secondary">
                 Download the CA certificate to install on your devices for trust validation
               </Paragraph>
-              <Space>
-                <Button
-                  type="primary"
-                  icon={<DownloadOutlined />}
-                  onClick={handleDownloadCert}
-                  loading={certLoading}
-                >
-                  Download CA Certificate (PEM)
-                </Button>
-                <Button
-                  icon={<CopyOutlined />}
-                  onClick={handleCopyCert}
-                  loading={certLoading}
-                >
-                  Copy to Clipboard
-                </Button>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    onClick={handleDownloadCert}
+                    loading={certLoading}
+                  >
+                    Download CA Certificate (PEM)
+                  </Button>
+                  <Button
+                    icon={<CopyOutlined />}
+                    onClick={handleCopyCert}
+                    loading={certLoading}
+                  >
+                    Copy Certificate
+                  </Button>
+                </Space>
+                <Input
+                  readOnly
+                  value={getCaCertificateUrl()}
+                  addonAfter={
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={handleCopyCaCertUrl}
+                    >
+                      Copy URL
+                    </Button>
+                  }
+                />
               </Space>
             </div>
 
@@ -146,6 +179,37 @@ export const CAInformation = () => {
                       Copy URL
                     </Button>
                   }
+                />
+              </Space>
+            </div>
+
+            <Divider />
+
+            <div>
+              <Title level={5}>OCSP Responder</Title>
+              <Paragraph type="secondary">
+                Real-time certificate status checking (alternative to CRL)
+              </Paragraph>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Input
+                  readOnly
+                  value={getOcspUrl()}
+                  addonAfter={
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={handleCopyOcspUrl}
+                    >
+                      Copy URL
+                    </Button>
+                  }
+                />
+                <Alert
+                  message="About OCSP"
+                  description="OCSP (Online Certificate Status Protocol) provides real-time certificate status checking. This URL is automatically included in all newly generated certificates and is used by browsers and other clients to verify certificate validity."
+                  type="info"
+                  showIcon
                 />
               </Space>
             </div>
