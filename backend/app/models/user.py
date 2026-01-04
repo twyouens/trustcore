@@ -25,4 +25,4 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
 
-    api_tokens = relationship("APIToken", back_populates="user", foreign_keys="APIToken.user_id")
+    api_tokens = relationship("APIToken", back_populates="user", foreign_keys="APIToken.user_id",primaryjoin="User.id==APIToken.user_id")

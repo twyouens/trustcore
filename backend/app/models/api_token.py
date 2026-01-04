@@ -1,3 +1,9 @@
+"""
+API Token Model - app/models/api_token.py
+For long-lived API tokens that can be exchanged for JWTs
+
+FIXED: Explicit foreign_keys specification for relationships
+"""
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
@@ -17,13 +23,13 @@ class APIToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Token identification
-    name = Column(String(255), nullable=False)  # Human-readable name
+    name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     token_hash = Column(String(255), nullable=False, unique=True, index=True)  # bcrypt hash
     
     # Ownership
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    user = relationship("User", back_populates="api_tokens")
+    user = relationship("User", back_populates="api_tokens", foreign_keys=[user_id])
     
     # Permissions (JSON array of scopes)
     scopes = Column(Text, nullable=True)  # JSON array: ["certificates:read", "certificates:write"]
