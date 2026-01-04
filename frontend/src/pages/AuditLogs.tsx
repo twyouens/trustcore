@@ -150,6 +150,21 @@ export const AuditLogs = () => {
                 { label: 'Certificate Rejected', value: 'certificate_rejected' },
                 { label: 'Certificate Revoked', value: 'certificate_revoked' },
                 { label: 'Certificate Downloaded', value: 'certificate_downloaded' },
+                { label: 'SCEP Request', value: 'scep_request' },
+                { label: 'API Token Created', value: 'api_token_created' },
+                { label: 'API Token Revoked', value: 'api_token_revoked' },
+                { label: 'API Token Updated', value: 'api_token_updated' },
+                { label: 'API Token Login Failed', value: 'api_token_login_failed' },
+                { label: 'API Token Login Success', value: 'api_token_login_success' },
+                { label: 'SCEP Client Created', value: 'scep_client_created' },
+                { label: 'SCEP Client Updated', value: 'scep_client_updated' },
+                { label: 'SCEP Client Deleted', value: 'scep_client_deleted' },
+                { label: 'SCEP Client Disabled', value: 'scep_client_disabled' },
+                { label: 'SCEP Client Enabled', value: 'scep_client_enabled' },
+                { label: 'SCEP Enrollment Failed', value: 'scep_enrollment_failed' },
+                { label: 'SCEP Enrollment Success', value: 'scep_enrollment_success' },
+                { label: 'SCEP Enrollment Rejected', value: 'scep_enrollment_rejected' },
+                { label: 'SCEP Enrollment Approved', value: 'scep_enrollment_approved' },
                 { label: 'Login', value: 'user_login' }
               ]}
             />
@@ -165,6 +180,8 @@ export const AuditLogs = () => {
                 { label: 'Certificate', value: 'certificate' },
                 { label: 'User', value: 'user' },
                 { label: 'CA', value: 'ca' },
+                { label: 'API Token', value: 'api_token' },
+                { label: 'SCEP Client', value: 'scep_client' }
               ]}
             />
           </Space>
