@@ -189,7 +189,7 @@ class APITokenService:
         return query.order_by(APIToken.created_at.desc()).all()
     
     @staticmethod
-    def authenticate_token(db: Session, token: str) -> Optional[User]:
+    def authenticate_token(db: Session, token: str) -> Tuple[Optional[User], Optional[APIToken]]:
         """
         Authenticate an API token and return the associated user
         
@@ -213,18 +213,18 @@ class APITokenService:
                 # Check if token is expired
                 if api_token.expires_at and api_token.expires_at < datetime.utcnow():
                     logger.warning(f"API token {api_token.id} is expired")
-                    return None
-                
+                    return None, None
+
                 # Update last used timestamp
                 api_token.last_used_at = datetime.utcnow()
                 db.commit()
                 
                 logger.info(f"API token {api_token.id} authenticated for user {api_token.user_id}")
-                return api_token.user
+                return api_token.user, api_token
         
         logger.warning("Invalid API token provided")
-        return None
-    
+        return None, None
+
     @staticmethod
     def revoke_token(
         db: Session,
