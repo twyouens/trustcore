@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api import auth, certificates, ca, audit, api_token, scep_client
+from app.api import auth, certificates, ca, audit, api_token, scep_client, scep
 from app.services.ca_service import ca_service
 from app.core.logging import get_logger
 
@@ -39,11 +39,12 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
-app.include_router(certificates.router, prefix=settings.API_V1_PREFIX)
-app.include_router(ca.router, prefix=settings.API_V1_PREFIX)
-app.include_router(audit.router, prefix=settings.API_V1_PREFIX)
-app.include_router(scep_client.router, prefix=settings.API_V1_PREFIX)
 app.include_router(api_token.router, prefix=settings.API_V1_PREFIX)
+app.include_router(ca.router, prefix=settings.API_V1_PREFIX)
+app.include_router(certificates.router, prefix=settings.API_V1_PREFIX)
+app.include_router(scep_client.router, prefix=settings.API_V1_PREFIX)
+app.include_router(scep.router, prefix=settings.API_V1_PREFIX)
+app.include_router(audit.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")
