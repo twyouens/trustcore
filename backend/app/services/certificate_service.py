@@ -429,8 +429,8 @@ class CertificateService:
         serial_number = str(cert_obj.serial_number)
         
         # Extract validity dates
-        not_before = cert_obj.not_valid_before
-        not_after = cert_obj.not_valid_after
+        not_before = cert_obj.not_valid_before_utc
+        not_after = cert_obj.not_valid_after_utc
         
         # Calculate validity days
         validity_days = (not_after - not_before).days
