@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate } from '@/utils/helpers';
 import { APIToken } from '@/types';
 import type { ColumnsType } from 'antd/es/table';
-import { CreateAPITokenModal } from '@/components/CreateApiTokenModal';
+import { CreateAPITokenModal } from '@/components/CreateAPITokenModal';
 
 const { Title, Text } = Typography;
 
