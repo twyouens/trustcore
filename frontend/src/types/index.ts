@@ -141,3 +141,99 @@ export interface AuditLogParams {
   skip?: number;
   limit?: number;
 }
+
+// API Token types
+export interface APIToken {
+  id: number;
+  name: string;
+  description: string | null;
+  scopes: string[];
+  expires_at: string | null;
+  last_used_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  created_by: {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string | null;
+  };
+  revoked_at: string | null;
+  revoked_by: {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string | null;
+  } | null;
+}
+
+export interface APITokenWithToken extends APIToken {
+  token: string; // Only present during creation
+}
+
+export interface CreateAPITokenRequest {
+  name: string;
+  description?: string;
+  scopes?: string[];
+  expires_in_days?: number | null;
+}
+
+export interface UpdateAPITokenRequest {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+// SCEP Client types
+export type SCEPCertificateType = 'machine' | 'user';
+
+export interface SCEPClient {
+  id: string; // UUID
+  name: string;
+  description: string | null;
+  allowed_certificate_types: SCEPCertificateType[];
+  user_validation_url: string | null;
+  machine_validation_url: string | null;
+  enabled: boolean;
+  scep_url: string;
+  total_requests: number;
+  successful_requests: number;
+  failed_requests: number;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string | null;
+  };
+}
+
+export interface CreateSCEPClientRequest {
+  name: string;
+  description?: string;
+  allowed_certificate_types: SCEPCertificateType[];
+  user_validation_url?: string;
+  machine_validation_url?: string;
+  enabled?: boolean;
+}
+
+export interface UpdateSCEPClientRequest {
+  name?: string;
+  description?: string;
+  allowed_certificate_types?: SCEPCertificateType[];
+  user_validation_url?: string;
+  machine_validation_url?: string;
+  enabled?: boolean;
+}
+
+export interface SCEPClientStats {
+  id: string;
+  name: string;
+  total_requests: number;
+  successful_requests: number;
+  failed_requests: number;
+  success_rate: number;
+  last_used_at: string | null;
+}
