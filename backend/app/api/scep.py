@@ -1,23 +1,24 @@
 """
-SCEP Protocol Endpoints - app/api/scep.py
-Implements SCEP protocol endpoints for MDM certificate enrollment
+SCEP Protocol Endpoints - app/api/scep.py (Using CertificateFormatter)
+Simplified implementation leveraging existing certificate_formatter service
 """
 from uuid import UUID
-from fastapi import APIRouter, Depends, Request, Response, HTTPException, status
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
+import logging
 
 from app.core.database import get_db
-from app.services.ca_service import ca_service
+from app.services.ca_service import CAService
 from app.services.scep_service import SCEPService
 from app.services.scep_client_service import SCEPClientService
 from app.services.audit_service import audit_service
 from app.services.certificate_service import certificate_service
+from app.services.certificate_formatter import certificate_formatter
 from app.models.certificate import CertificateType
-from app.core.logging import get_logger
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scep", tags=["SCEP Protocol"])
 
@@ -35,7 +36,7 @@ async def scep_get(
     SCEP GET operations: GetCACert and GetCACaps
     
     This endpoint handles:
-    - GetCACert: Returns CA certificate
+    - GetCACert: Returns CA certificate in PKCS#7 format
     - GetCACaps: Returns CA capabilities
     
     **No authentication required** (SCEP protocol design)
@@ -50,20 +51,28 @@ async def scep_get(
             media_type="text/plain"
         )
     
+    ca_service = CAService()
     
     try:
         if operation == "GetCACert":
-            # Return CA certificate in DER format
-            ca_cert_der = SCEPService.get_ca_cert(ca_service)
+            # Get CA certificate
+            ca_cert_pem = ca_service.get_ca_certificate()
+            
+            # Convert to PKCS#7 (degenerate - certificates only)
+            pkcs7_data = certificate_formatter.to_pkcs7(
+                certificate_pem=ca_cert_pem,
+                ca_cert_pem=ca_cert_pem,  # Include CA cert in chain
+                include_chain=True
+            )
             
             # Update client stats
             SCEPClientService.increment_stats(db, client_id, success=True)
 
             logger.info(f"SCEP GetCACert successful for client: {client_id}")
             return Response(
-                content=ca_cert_der,
+                content=pkcs7_data,
                 status_code=200,
-                media_type="application/x-x509-ca-cert"
+                media_type=certificate_formatter.get_media_type('pkcs7')
             )
         
         elif operation == "GetCACaps":
@@ -114,17 +123,10 @@ async def scep_post(
     SCEP POST operation: PKIOperation (certificate enrollment)
     
     This endpoint handles certificate signing requests from MDM systems.
-    
-    **Flow:**
-    1. Validate SCEP client
-    2. Parse CSR from request
-    3. Detect certificate type (MACHINE or USER)
-    4. Validate request (external validation endpoints)
-    5. Sign certificate
-    6. Return signed certificate
+    Accepts PKCS#7 wrapped CSRs or plain PEM/DER CSRs.
+    Returns signed certificate wrapped in PKCS#7.
     
     **No authentication required** (SCEP protocol design)
-    Client authentication is via the client_id UUID in the URL
     """
     # Validate SCEP client
     scep_client = SCEPClientService.validate_client(db, client_id)
@@ -138,28 +140,35 @@ async def scep_post(
         )
     
     try:
-        # Read request body (PKCS#7 wrapped CSR)
-        # For now, we'll accept plain PEM CSR for simplicity
-        # TODO: Implement full PKCS#7 parsing for production
+        # Read request body
         body = await request.body()
         
-        # Try to parse as PEM CSR
-        try:
-            csr_pem = body.decode('utf-8')
-            csr = x509.load_pem_x509_csr(csr_pem.encode(), default_backend())
-        except Exception as e:
-            logger.error(f"Failed to parse CSR: {str(e)}")
+        # Unwrap PKCS#7 to get CSR (also accepts plain PEM/DER)
+        csr_pem, error_msg = certificate_formatter.unwrap_pkcs7_csr(body)
+        
+        if not csr_pem:
+            logger.error(f"Failed to parse CSR: {error_msg}")
             SCEPClientService.increment_stats(db, client_id, success=False)
             
             # Audit log
-            audit_service.log_scep_enrollment_failed(
-                db=db,
-                user=scep_client.user,
+            audit_service.log_scep_enrollment_rejected(
                 client_id=client_id,
-                ip_address=request.client.host,
-                reason="Invalid CSR format"
+                client_name=scep_client.name,
+                error=error_msg
             )
 
+            return Response(
+                content=error_msg.encode(),
+                status_code=400,
+                media_type="text/plain"
+            )
+        
+        # Parse CSR
+        try:
+            csr = x509.load_pem_x509_csr(csr_pem.encode(), default_backend())
+        except Exception as e:
+            logger.error(f"Failed to load CSR: {str(e)}")
+            SCEPClientService.increment_stats(db, client_id, success=False)
             return Response(
                 content=b"Invalid CSR format",
                 status_code=400,
@@ -194,21 +203,21 @@ async def scep_post(
                 ip_address=request.client.host,
                 reason=validation_message
             )
-
+            
             return Response(
                 content=validation_message.encode(),
                 status_code=403,
                 media_type="text/plain"
             )
         
-        # Sign the certificate using CA service
+        # Sign the certificate
+        ca_service = CAService()
         cert_pem = ca_service.sign_csr(
             csr_pem=csr_pem,
             cert_type=cert_type
         )
         
-        
-        # Extract Common Name for identifier
+        # Store certificate in database
         common_name = SCEPService.get_common_name(csr)
         if not common_name:
             common_name = "SCEP-enrolled"
@@ -219,7 +228,6 @@ async def scep_post(
         
         # Create certificate record
         cert_record = certificate_service.create_certificate_from_scep(
-            db=db,
             certificate_type=cert_type,
             common_name=common_name,
             csr=csr_pem,
@@ -242,18 +250,26 @@ async def scep_post(
             serial_number=cert_record.serial_number,
             validation_message=validation_message
         )
-
+        
         logger.info(
             f"SCEP enrollment successful: {cert_type.value} certificate for {common_name} "
             f"via client {scep_client.name}"
         )
         
-        # Return signed certificate (PEM format)
-        # TODO: Wrap in PKCS#7 for full SCEP compliance
+        # Get CA certificate for PKCS#7 chain
+        ca_cert_pem = ca_service.get_ca_certificate()
+        
+        # Wrap certificate in PKCS#7 with CA cert chain
+        pkcs7_response = certificate_formatter.to_pkcs7(
+            certificate_pem=cert_pem,
+            ca_cert_pem=ca_cert_pem,
+            include_chain=True
+        )
+        
         return Response(
-            content=cert_pem.encode(),
+            content=pkcs7_response,
             status_code=200,
-            media_type="application/x-pem-file"
+            media_type=certificate_formatter.get_media_type('pkcs7')
         )
     
     except Exception as e:
