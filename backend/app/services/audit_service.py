@@ -157,7 +157,6 @@ class AuditService:
         user: User,
         name: str,
         scopes: List[str],
-        expires_at: Optional[datetime] = None,
         ip_address: Optional[str] = None,
     ):
         """Log API token creation"""
@@ -168,7 +167,7 @@ class AuditService:
             resource_id=token_id,
             user=user,
             ip_address=ip_address,
-            details={"name": name, "scopes": scopes, "expires_at": expires_at}
+            details={"name": name, "scopes": scopes}
         )
 
     @staticmethod
@@ -256,7 +255,7 @@ class AuditService:
             db=db,
             action="scep_client_created",
             resource_type="scep_client",
-            resource_id=client_id,
+            resource_id=None,
             user=user,
             ip_address=ip_address,
             details={
@@ -278,7 +277,7 @@ class AuditService:
             db=db,
             action="scep_client_updated",
             resource_type="scep_client",
-            resource_id=client_id,
+            resource_id=None,
             user=user,
             ip_address=ip_address,
             details={
@@ -299,7 +298,7 @@ class AuditService:
             db=db,
             action="scep_client_deleted",
             resource_type="scep_client",
-            resource_id=client_id,
+            resource_id=None,
             user=user,
             ip_address=ip_address,
             details={
@@ -319,7 +318,7 @@ class AuditService:
             db=db,
             action="scep_client_disabled",
             resource_type="scep_client",
-            resource_id=client_id,
+            resource_id=None,
             user=user,
             ip_address=ip_address
         )
@@ -336,9 +335,93 @@ class AuditService:
             db=db,
             action="scep_client_enabled",
             resource_type="scep_client",
-            resource_id=client_id,
+            resource_id=None,
             user=user,
             ip_address=ip_address
+        )
+
+    @staticmethod
+    def log_scep_enrollment_failed(
+        db: Session,
+        user: User,
+        client_id: UUID,
+        ip_address: Optional[str] = None,
+        reason: str = "Unknown"
+    ):
+        """Log SCEP enrollment failure"""
+        return AuditService.log(
+            db=db,
+            action="scep_enrollment_failed",
+            resource_type="scep_client",
+            resource_id=None,
+            user=user,
+            ip_address=ip_address,
+            details={"client_id": str(client_id), "reason": reason}
+        )
+    
+    @staticmethod
+    def log_scep_enrollment_rejected(
+        db: Session,
+        user: User,
+        client_id: UUID,
+        ip_address: Optional[str] = None,
+        reason: str = "Unknown"
+    ):
+        """Log SCEP enrollment rejection"""
+        return AuditService.log(
+            db=db,
+            action="scep_enrollment_rejected",
+            resource_type="scep_client",
+            resource_id=None,
+            user=user,
+            ip_address=ip_address,
+            details={"client_id": str(client_id), "reason": reason}
+        )
+
+    @staticmethod
+    def log_scep_enrollment_approved(
+        db: Session,
+        user: User,
+        client_id: UUID,
+        ip_address: Optional[str] = None
+    ):
+        """Log SCEP enrollment approval"""
+        return AuditService.log(
+            db=db,
+            action="scep_enrollment_approved",
+            resource_type="scep_client",
+            resource_id=None,
+            user=user,
+            ip_address=ip_address,
+            details={"client_id": str(client_id)}
+        )
+    
+    @staticmethod
+    def log_scep_enrollment_success(
+        db: Session,
+        user: User,
+        client_id: UUID,
+        common_name: str,
+        serial_number: str,
+        validation_message: str,
+        ip_address: Optional[str] = None,
+        cert_type: Optional[str] = None,
+    ):
+        """Log SCEP enrollment success"""
+        return AuditService.log(
+            db=db,
+            action="scep_enrollment_success",
+            resource_type="scep_client",
+            resource_id=None,
+            user=user,
+            ip_address=ip_address,
+            details={
+                "client_id": str(client_id),
+                "cert_type": cert_type,
+                "common_name": common_name,
+                "serial_number": serial_number,
+                "validation_message": validation_message
+            }
         )
 
 
