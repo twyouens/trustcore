@@ -140,9 +140,17 @@ async def scep_post(
     try:
         # Read request body
         body = await request.body()
-        
+
+        client_cert_pem = certificate_formatter.extract_client_cert_from_scep(body)
+        if not client_cert_pem:
+            logger.error("Could not extract client certificate from request")
+            return Response(content=b"Invalid SCEP request format", status_code=400)
+
         # Unwrap PKCS#7 to get CSR (also accepts plain PEM/DER)
         csr_pem, error_msg = certificate_formatter.unwrap_pkcs7_csr(body)
+        transaction_id = certificate_formatter.extract_transaction_id_from_scep(body)
+        sender_nonce = certificate_formatter.extract_sender_nonce_from_scep(body)
+        logger.debug(f"Extracted transaction ID: {transaction_id}")
         
         if not csr_pem:
             logger.error(f"Failed to parse CSR: {error_msg}")
@@ -223,9 +231,6 @@ async def scep_post(
         # Normalize MAC address if it's a machine cert
         if cert_type == CertificateType.MACHINE:
             common_name = scep_service.normalize_mac_address(common_name)
-        
-        # debug db type
-        print(f"DB session type: {type(db)}")
 
         # Create certificate record
         cert_record = certificate_service.create_certificate_from_scep(
@@ -260,18 +265,15 @@ async def scep_post(
         
         # Get CA certificate for PKCS#7 chain
         ca_cert_pem = ca_service.get_ca_certificate()
+        ca_key = ca_service._load_ca_key()
         
         # Wrap certificate in PKCS#7 with CA cert chain
-        pkcs7_response = certificate_formatter.to_pkcs7(
-            certificate_pem=cert_pem,
-            ca_cert_pem=ca_cert_pem,
-            include_chain=True
-        )
-        
+        pkcs7_response = certificate_formatter.create_scep_cert_response(cert_pem=cert_pem, ca_cert_pem=ca_cert_pem, recipient_cert_pem=client_cert_pem, transaction_id=transaction_id, recipient_nonce=sender_nonce)
+
         return Response(
             content=pkcs7_response,
             status_code=200,
-            media_type=certificate_formatter.get_media_type('pkcs7')
+            media_type='application/x-pki-message'  # SCEP standard MIME type
         )
     
     except Exception as e:
