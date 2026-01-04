@@ -62,8 +62,7 @@ async def create_api_token(
         user=current_user,
         ip_address=None,
         name=api_token.name,
-        scopes=api_token.scopes,
-        expires_at=api_token.expires_at
+        scopes=api_token.scopes.split(",") if api_token.scopes else [],
     )
 
     # Convert to response with plaintext token
