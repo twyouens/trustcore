@@ -35,7 +35,7 @@ class SCEPClientService:
         Args:
             db: Database session
             name: Client name
-            allowed_certificate_types: List of cert types (MACHINE, USER)
+            allowed_certificate_types: List of cert types (machine, user)
             created_by_id: ID of admin creating the client
             description: Optional description
             user_validation_url: Optional user validation endpoint
@@ -262,3 +262,5 @@ class SCEPClientService:
             })
         
         return stats
+
+scep_client_service = SCEPClientService()

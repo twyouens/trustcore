@@ -31,7 +31,7 @@ class SCEPClientCreate(BaseModel):
     @classmethod
     def validate_cert_types(cls, v):
         """Validate certificate types"""
-        allowed_types = {'MACHINE', 'USER'}
+        allowed_types = {'machine', 'user'}
         for cert_type in v:
             if cert_type not in allowed_types:
                 raise ValueError(f"Invalid certificate type: {cert_type}. Must be one of: {allowed_types}")
@@ -42,7 +42,7 @@ class SCEPClientCreate(BaseModel):
             "example": {
                 "name": "Intune Production",
                 "description": "Microsoft Intune for corporate devices",
-                "allowed_certificate_types": ["MACHINE", "USER"],
+                "allowed_certificate_types": ["machine", "user"],
                 "user_validation_url": "https://identity.corp.com/api/validate-user",
                 "machine_validation_url": "https://cmdb.corp.com/api/validate-mac",
                 "enabled": True
@@ -75,7 +75,7 @@ class SCEPClientResponse(BaseModel):
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Intune Production",
                 "description": "Microsoft Intune for corporate devices",
-                "allowed_certificate_types": ["MACHINE", "USER"],
+                "allowed_certificate_types": ["machine", "user"],
                 "user_validation_url": "https://identity.corp.com/api/validate-user",
                 "machine_validation_url": "https://cmdb.corp.com/api/validate-mac",
                 "enabled": True,
@@ -111,7 +111,7 @@ class SCEPClientUpdate(BaseModel):
         """Validate certificate types"""
         if v is None:
             return v
-        allowed_types = {'MACHINE', 'USER'}
+        allowed_types = {'machine', 'user'}
         for cert_type in v:
             if cert_type not in allowed_types:
                 raise ValueError(f"Invalid certificate type: {cert_type}. Must be one of: {allowed_types}")

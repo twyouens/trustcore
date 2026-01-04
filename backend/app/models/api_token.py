@@ -40,7 +40,7 @@ class APIToken(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Audit fields
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow(), nullable=False)
     revoked_at = Column(DateTime, nullable=True)
     revoked_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     revoked_by = relationship("User", foreign_keys=[revoked_by_id])

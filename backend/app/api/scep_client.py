@@ -15,14 +15,14 @@ from app.schemas.scep_client import (
     SCEPClientUpdate,
     SCEPClientStats
 )
-from app.services.scep_client_service import SCEPClientService
+from app.services.scep_client_service import scep_client_service
 from app.services.audit_service import audit_service
 from app.services.auth_service import get_current_admin, get_current_user
 
 router = APIRouter(prefix="/scep/clients", tags=["SCEP Management"])
 
 
-@router.post("/",
+@router.post("",
     response_model=SCEPClientResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create SCEP Client",
@@ -44,7 +44,7 @@ async def create_scep_client(
         SCEPClientResponse with SCEP URL
     """
     # Create client
-    scep_client = SCEPClientService.create_client(
+    scep_client = scep_client_service.create_client(
         db=db,
         name=client_data.name,
         description=client_data.description,
@@ -56,7 +56,7 @@ async def create_scep_client(
     )
     
     # Reload with relationships
-    scep_client = SCEPClientService.get_client_by_id(db, scep_client.id)
+    scep_client = scep_client_service.get_client_by_id(db, scep_client.id)
     
     # Audit log
     audit_service.log_scep_client_created(
@@ -71,7 +71,7 @@ async def create_scep_client(
     return scep_client
 
 
-@router.get("/",
+@router.get("",
     response_model=List[SCEPClientResponse],
     summary="List SCEP Clients",
     description="List all SCEP clients. Requires admin role.")
@@ -91,7 +91,7 @@ async def list_scep_clients(
     Returns:
         List of SCEP clients
     """
-    clients = SCEPClientService.get_all_clients(db, include_disabled=include_disabled)
+    clients = scep_client_service.get_all_clients(db, include_disabled=include_disabled)
     return clients
 
 
@@ -111,7 +111,7 @@ async def get_scep_client_stats(
     Returns:
         List of client statistics including success rates
     """
-    stats = SCEPClientService.get_client_stats(db)
+    stats = scep_client_service.get_client_stats(db)
     return stats
 
 
@@ -132,7 +132,7 @@ async def get_scep_client(
     Returns:
         SCEP client details including SCEP URL
     """
-    scep_client = SCEPClientService.get_client_by_id(db, client_id)
+    scep_client = scep_client_service.get_client_by_id(db, client_id)
     
     if not scep_client:
         raise HTTPException(
@@ -164,7 +164,7 @@ async def update_scep_client(
     Returns:
         Updated SCEP client
     """
-    updated_client = SCEPClientService.update_client(
+    updated_client = scep_client_service.update_client(
         db=db,
         client_id=client_id,
         name=client_data.name,
@@ -182,7 +182,7 @@ async def update_scep_client(
         )
     
     # Reload with relationships
-    updated_client = SCEPClientService.get_client_by_id(db, client_id)
+    updated_client = scep_client_service.get_client_by_id(db, client_id)
     
     # Audit log
     audit_service.log_scep_client_updated(
@@ -216,7 +216,7 @@ async def delete_scep_client(
         204 No Content on success
     """
     # Get client for audit log before deletion
-    scep_client = SCEPClientService.get_client_by_id(db, client_id)
+    scep_client = scep_client_service.get_client_by_id(db, client_id)
     
     if not scep_client:
         raise HTTPException(
@@ -227,7 +227,7 @@ async def delete_scep_client(
     client_name = scep_client.name
     
     # Delete client
-    deleted = SCEPClientService.delete_client(db, client_id)
+    deleted = scep_client_service.delete_client(db, client_id)
     
     if not deleted:
         raise HTTPException(
@@ -266,7 +266,7 @@ async def disable_scep_client(
     Returns:
         Updated SCEP client
     """
-    updated_client = SCEPClientService.update_client(
+    updated_client = scep_client_service.update_client(
         db=db,
         client_id=client_id,
         enabled=False
@@ -279,7 +279,7 @@ async def disable_scep_client(
         )
     
     # Reload with relationships
-    updated_client = SCEPClientService.get_client_by_id(db, client_id)
+    updated_client = scep_client_service.get_client_by_id(db, client_id)
     
     # Audit log
     audit_service.log_scep_client_disabled(
@@ -310,7 +310,7 @@ async def enable_scep_client(
     Returns:
         Updated SCEP client
     """
-    updated_client = SCEPClientService.update_client(
+    updated_client = scep_client_service.update_client(
         db=db,
         client_id=client_id,
         enabled=True
@@ -323,7 +323,7 @@ async def enable_scep_client(
         )
     
     # Reload with relationships
-    updated_client = SCEPClientService.get_client_by_id(db, client_id)
+    updated_client = scep_client_service.get_client_by_id(db, client_id)
     
     # Audit log
     audit_service.log_scep_client_enabled(

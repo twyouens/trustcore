@@ -5,20 +5,20 @@ Simplified implementation leveraging existing certificate_formatter service
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
-import logging
 
 from app.core.database import get_db
-from app.services.ca_service import CAService
-from app.services.scep_service import SCEPService
-from app.services.scep_client_service import SCEPClientService
+from app.services.ca_service import ca_service
+from app.services.scep_service import scep_service
+from app.services.scep_client_service import scep_client_service
 from app.services.audit_service import audit_service
 from app.services.certificate_service import certificate_service
 from app.services.certificate_formatter import certificate_formatter
 from app.models.certificate import CertificateType
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/scep", tags=["SCEP Protocol"])
 
@@ -42,7 +42,7 @@ async def scep_get(
     **No authentication required** (SCEP protocol design)
     """
     # Validate SCEP client
-    scep_client = SCEPClientService.validate_client(db, client_id)
+    scep_client = scep_client_service.validate_client(db, client_id)
     if not scep_client:
         logger.warning(f"Invalid SCEP client ID: {client_id}")
         return Response(
@@ -50,8 +50,6 @@ async def scep_get(
             status_code=403,
             media_type="text/plain"
         )
-    
-    ca_service = CAService()
     
     try:
         if operation == "GetCACert":
@@ -66,7 +64,7 @@ async def scep_get(
             )
             
             # Update client stats
-            SCEPClientService.increment_stats(db, client_id, success=True)
+            scep_client_service.increment_stats(db, client_id, success=True)
 
             logger.info(f"SCEP GetCACert successful for client: {client_id}")
             return Response(
@@ -77,11 +75,11 @@ async def scep_get(
         
         elif operation == "GetCACaps":
             # Return CA capabilities
-            ca_caps = SCEPService.get_ca_caps()
-            
+            ca_caps = scep_service.get_ca_caps()
+
             # Update client stats
-            SCEPClientService.increment_stats(db, client_id, success=True)
-            
+            scep_client_service.increment_stats(db, client_id, success=True)
+
             # Log
             logger.info(f"SCEP GetCACaps successful for client: {client_id}")
 
@@ -93,7 +91,7 @@ async def scep_get(
         
         else:
             logger.warning(f"Unknown SCEP operation: {operation}")
-            SCEPClientService.increment_stats(db, client_id, success=False)
+            scep_client_service.increment_stats(db, client_id, success=False)
             return Response(
                 content=b"Unknown operation",
                 status_code=400,
@@ -102,7 +100,7 @@ async def scep_get(
     
     except Exception as e:
         logger.error(f"SCEP GET error: {str(e)}")
-        SCEPClientService.increment_stats(db, client_id, success=False)
+        scep_client_service.increment_stats(db, client_id, success=False)
         return Response(
             content=b"Internal server error",
             status_code=500,
@@ -117,7 +115,7 @@ async def scep_get(
 async def scep_post(
     client_id: UUID,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     SCEP POST operation: PKIOperation (certificate enrollment)
@@ -129,10 +127,10 @@ async def scep_post(
     **No authentication required** (SCEP protocol design)
     """
     # Validate SCEP client
-    scep_client = SCEPClientService.validate_client(db, client_id)
+    scep_client = scep_client_service.validate_client(db, client_id)
     if not scep_client:
         logger.warning(f"Invalid SCEP client ID: {client_id}")
-        SCEPClientService.increment_stats(db, client_id, success=False)
+        scep_client_service.increment_stats(db, client_id, success=False)
         return Response(
             content=b"Invalid SCEP client",
             status_code=403,
@@ -148,13 +146,14 @@ async def scep_post(
         
         if not csr_pem:
             logger.error(f"Failed to parse CSR: {error_msg}")
-            SCEPClientService.increment_stats(db, client_id, success=False)
-            
+            scep_client_service.increment_stats(db, client_id, success=False)
+
             # Audit log
             audit_service.log_scep_enrollment_rejected(
+                db=db,
+                user=None,
                 client_id=client_id,
-                client_name=scep_client.name,
-                error=error_msg
+                reason=error_msg
             )
 
             return Response(
@@ -168,7 +167,7 @@ async def scep_post(
             csr = x509.load_pem_x509_csr(csr_pem.encode(), default_backend())
         except Exception as e:
             logger.error(f"Failed to load CSR: {str(e)}")
-            SCEPClientService.increment_stats(db, client_id, success=False)
+            scep_client_service.increment_stats(db, client_id, success=False)
             return Response(
                 content=b"Invalid CSR format",
                 status_code=400,
@@ -176,10 +175,10 @@ async def scep_post(
             )
         
         # Detect certificate type
-        cert_type = SCEPService.detect_certificate_type(csr)
+        cert_type = scep_service.detect_certificate_type(csr)
         if not cert_type:
             logger.error("Could not detect certificate type")
-            SCEPClientService.increment_stats(db, client_id, success=False)
+            scep_client_service.increment_stats(db, client_id, success=False)
             return Response(
                 content=b"Could not detect certificate type",
                 status_code=400,
@@ -187,18 +186,18 @@ async def scep_post(
             )
         
         # Validate certificate request
-        is_valid, validation_message = await SCEPService.validate_certificate_request(
+        is_valid, validation_message = await scep_service.validate_certificate_request(
             csr, cert_type, scep_client
         )
         
         if not is_valid:
             logger.warning(f"Certificate validation failed: {validation_message}")
-            SCEPClientService.increment_stats(db, client_id, success=False)
+            scep_client_service.increment_stats(db, client_id, success=False)
             
             # Audit log
             audit_service.log_scep_enrollment_failed(
                 db=db,
-                user=scep_client.user,
+                user=None,
                 client_id=client_id,
                 ip_address=request.client.host,
                 reason=validation_message
@@ -211,23 +210,26 @@ async def scep_post(
             )
         
         # Sign the certificate
-        ca_service = CAService()
         cert_pem = ca_service.sign_csr(
             csr_pem=csr_pem,
             cert_type=cert_type
         )
         
         # Store certificate in database
-        common_name = SCEPService.get_common_name(csr)
+        common_name = scep_service.get_common_name(csr)
         if not common_name:
             common_name = "SCEP-enrolled"
         
         # Normalize MAC address if it's a machine cert
         if cert_type == CertificateType.MACHINE:
-            common_name = SCEPService.normalize_mac_address(common_name)
+            common_name = scep_service.normalize_mac_address(common_name)
         
+        # debug db type
+        print(f"DB session type: {type(db)}")
+
         # Create certificate record
         cert_record = certificate_service.create_certificate_from_scep(
+            db=db,
             certificate_type=cert_type,
             common_name=common_name,
             csr=csr_pem,
@@ -237,12 +239,12 @@ async def scep_post(
         )
         
         # Update client stats
-        SCEPClientService.increment_stats(db, client_id, success=True)
+        scep_client_service.increment_stats(db, client_id, success=True)
         
         # Audit log
         audit_service.log_scep_enrollment_success(
             db=db,
-            user=scep_client.user,
+            user=None,
             client_id=client_id,
             ip_address=request.client.host,
             cert_type=cert_type.value,
@@ -274,7 +276,7 @@ async def scep_post(
     
     except Exception as e:
         logger.error(f"SCEP enrollment error: {str(e)}", exc_info=True)
-        SCEPClientService.increment_stats(db, client_id, success=False)
+        scep_client_service.increment_stats(db, client_id, success=False)
         
         # Audit log
         logger.error(f"SCEP enrollment error: {str(e)}", exc_info=True)

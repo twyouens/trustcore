@@ -5,7 +5,6 @@ Implements SCEP protocol (RFC 8894) for automated certificate enrollment
 import re
 from datetime import datetime
 from typing import Optional, Tuple, Dict
-import logging
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -19,8 +18,9 @@ from app.models.certificate import CertificateType
 from app.services.scep_client_service import SCEPClientService
 from app.services.ca_service import CAService
 from app.core.config import settings
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class SCEPService:
@@ -291,3 +291,5 @@ class SCEPService:
             if attribute.oid == x509.oid.NameOID.COMMON_NAME:
                 return attribute.value
         return None
+
+scep_service = SCEPService()

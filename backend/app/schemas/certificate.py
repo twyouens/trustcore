@@ -80,7 +80,7 @@ class CertificateResponse(BaseModel):
     approved_at: Optional[datetime] = None
     revoked_at: Optional[datetime] = None
     revocation_reason: Optional[str] = None
-    requested_by_id: int
+    requested_by_id: Optional[int] = None
     approved_by_id: Optional[int] = None
     revoked_by_id: Optional[int] = None
     auto_approved: bool

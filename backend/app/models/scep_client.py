@@ -33,7 +33,7 @@ class SCEPClient(Base):
     allowed_certificate_types = Column(
         ARRAY(String),
         nullable=False,
-        comment="Certificate types this client can request: MACHINE, USER"
+        comment="Certificate types this client can request: machine, user"
     )
     
     # Validation endpoints (optional)

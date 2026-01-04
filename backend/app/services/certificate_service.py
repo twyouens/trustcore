@@ -405,16 +405,9 @@ class CertificateService:
             joinedload(Certificate.approved_by),
             joinedload(Certificate.revoked_by),
         ).filter(Certificate.id == certificate_id).first()
-    
-    def create_certificate_from_scep(
-        db: Session,
-        certificate_type: CertificateType,
-        common_name: str,
-        csr: str,
-        certificate: str,
-        scep_client_id: str,
-        validation_message: str
-    ) -> Certificate:
+
+    @staticmethod
+    def create_certificate_from_scep(db: Session, certificate_type: CertificateType, common_name: str, csr: str, certificate: str, scep_client_id: str, validation_message: str) -> Certificate:
         """
         Create a certificate record from SCEP enrollment
         
@@ -467,11 +460,7 @@ class CertificateService:
             db=db,
             certificate_id=cert_record.id,
             certificate_type=certificate_type.value,
-            user=None,  # No user for SCEP
-            details={
-                "scep_client_id": scep_client_id,
-                "validation_message": validation_message
-            }
+            user=None
         )
         return cert_record
 

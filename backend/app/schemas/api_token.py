@@ -32,7 +32,6 @@ class APITokenCreated(BaseModel):
     scopes: Optional[List[str]]
     expires_at: Optional[datetime]
     created_at: datetime
-    created_by: UserSnippet
     
     class Config:
         from_attributes = True
@@ -48,7 +47,6 @@ class APITokenResponse(BaseModel):
     last_used_at: Optional[datetime]
     is_active: bool
     created_at: datetime
-    created_by: UserSnippet
     revoked_at: Optional[datetime] = None
     revoked_by: Optional[UserSnippet] = None
     

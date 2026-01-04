@@ -46,7 +46,7 @@ class Certificate(Base):
     revocation_reason = Column(String, nullable=True)
     
     # Relations
-    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     requested_by = relationship("User", foreign_keys=[requested_by_id])
     
     approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)

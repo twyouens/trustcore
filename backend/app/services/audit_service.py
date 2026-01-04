@@ -41,7 +41,7 @@ class AuditService:
         db: Session,
         certificate_id: int,
         certificate_type: str,
-        user: User,
+        user: Optional[User] = None,
         ip_address: Optional[str] = None,
     ):
         """Log certificate request"""
@@ -259,6 +259,7 @@ class AuditService:
             user=user,
             ip_address=ip_address,
             details={
+                "client_id": str(client_id),
                 "client_name": client_name,
                 "allowed_certificate_types": allowed_certificate_types
             }
@@ -281,6 +282,7 @@ class AuditService:
             user=user,
             ip_address=ip_address,
             details={
+                "client_id": str(client_id),
                 "changes": changes
             }
         )
@@ -302,7 +304,8 @@ class AuditService:
             user=user,
             ip_address=ip_address,
             details={
-                "client_name": client_name
+                "client_name": client_name,
+                "client_id": str(client_id)
             }
         )
 
@@ -320,7 +323,8 @@ class AuditService:
             resource_type="scep_client",
             resource_id=None,
             user=user,
-            ip_address=ip_address
+            ip_address=ip_address,
+            details={"client_id": str(client_id)}
         )
     
     @staticmethod
@@ -337,14 +341,15 @@ class AuditService:
             resource_type="scep_client",
             resource_id=None,
             user=user,
-            ip_address=ip_address
+            ip_address=ip_address,
+            details={"client_id": str(client_id)}
         )
 
     @staticmethod
     def log_scep_enrollment_failed(
         db: Session,
-        user: User,
         client_id: UUID,
+        user: Optional[User] = None,
         ip_address: Optional[str] = None,
         reason: str = "Unknown"
     ):
@@ -362,8 +367,8 @@ class AuditService:
     @staticmethod
     def log_scep_enrollment_rejected(
         db: Session,
-        user: User,
         client_id: UUID,
+        user: Optional[User] = None,
         ip_address: Optional[str] = None,
         reason: str = "Unknown"
     ):
@@ -381,8 +386,8 @@ class AuditService:
     @staticmethod
     def log_scep_enrollment_approved(
         db: Session,
-        user: User,
         client_id: UUID,
+        user: Optional[User] = None,
         ip_address: Optional[str] = None
     ):
         """Log SCEP enrollment approval"""
@@ -399,11 +404,11 @@ class AuditService:
     @staticmethod
     def log_scep_enrollment_success(
         db: Session,
-        user: User,
         client_id: UUID,
         common_name: str,
         serial_number: str,
         validation_message: str,
+        user: Optional[User] = None,
         ip_address: Optional[str] = None,
         cert_type: Optional[str] = None,
     ):
