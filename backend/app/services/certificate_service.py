@@ -405,6 +405,75 @@ class CertificateService:
             joinedload(Certificate.approved_by),
             joinedload(Certificate.revoked_by),
         ).filter(Certificate.id == certificate_id).first()
+    
+    def create_certificate_from_scep(
+        db: Session,
+        certificate_type: CertificateType,
+        common_name: str,
+        csr: str,
+        certificate: str,
+        scep_client_id: str,
+        validation_message: str
+    ) -> Certificate:
+        """
+        Create a certificate record from SCEP enrollment
+        
+        Args:
+            certificate_type: Type of certificate (MACHINE or USER)
+            common_name: Common name from CSR
+            csr: CSR in PEM format
+            certificate: Signed certificate in PEM format
+            scep_client_id: UUID of SCEP client that requested it
+            validation_message: Validation result message
+            
+        Returns:
+            Certificate record
+        """
+        # Parse certificate to extract details
+        cert_obj = x509.load_pem_x509_certificate(certificate.encode(), default_backend())
+        
+        # Extract serial number
+        serial_number = str(cert_obj.serial_number)
+        
+        # Extract validity dates
+        not_before = cert_obj.not_valid_before
+        not_after = cert_obj.not_valid_after
+        
+        # Calculate validity days
+        validity_days = (not_after - not_before).days
+        
+        # Create certificate record
+        cert_record = Certificate(
+            certificate_type=certificate_type,
+            common_name=common_name,
+            serial_number=serial_number,
+            csr=csr,
+            certificate=certificate,
+            status=CertificateStatus.APPROVED,  # Auto-approved for SCEP
+            auto_approved=True,
+            not_before=not_before,
+            not_after=not_after,
+            validity_days=validity_days,
+            requested_by_id=None,  # No user for SCEP enrollment
+            approved_by_id=None,   # Auto-approved
+            subject_alternative_names=None  # Extract if needed
+        )
+        
+        db.add(cert_record)
+        db.commit()
+        db.refresh(cert_record)
+        
+        audit_service.log_certificate_request(
+            db=db,
+            certificate_id=cert_record.id,
+            certificate_type=certificate_type.value,
+            user=None,  # No user for SCEP
+            details={
+                "scep_client_id": scep_client_id,
+                "validation_message": validation_message
+            }
+        )
+        return cert_record
 
 
 
