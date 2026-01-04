@@ -27,3 +27,10 @@ export const getCrlUrl = (): string => {
 export const getCaInfoUrl = (): string => {
   return `${getApiBaseUrl()}/ca/info`;
 };
+
+/**
+ * Get the OCSP responder URL
+ */
+export const getOcspUrl = (): string => {
+  return `${getApiBaseUrl()}/ca/ocsp`;
+};
