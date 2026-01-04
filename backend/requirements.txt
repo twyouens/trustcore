@@ -13,6 +13,7 @@ python-jose[cryptography]
 PyJWT
 passlib[bcrypt]
 python-dotenv
+bcrypt==4.3.0
 
 # Cryptography for CA operations
 cryptography
