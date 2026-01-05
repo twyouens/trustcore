@@ -21,7 +21,7 @@ from app.services.auth_service import get_current_user, get_current_admin
 router = APIRouter(prefix="/tokens", tags=["API Tokens"])
 
 
-@router.post("/",
+@router.post("",
     response_model=APITokenCreated,
     status_code=status.HTTP_201_CREATED,
     summary="Create API Token",
@@ -80,7 +80,7 @@ async def create_api_token(
     return response
 
 
-@router.get("/",
+@router.get("",
     response_model=List[APITokenResponse],
     summary="List API Tokens",
     description="List API tokens. Admins see all tokens, users see only their own.")
